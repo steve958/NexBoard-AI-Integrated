@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { AuthProvider } from "@/lib/auth";
+import { Protected } from "@/components/Protected";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,20 +16,18 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? "NexBoard",
-  description: "NexBoard",
+  description: "Developer-first boards and tasks",
 };
 
-export default function RootLayout({
+export default function AppLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <AuthProvider>{children}</AuthProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <AuthProvider>
+          <Protected>{children}</Protected>
+        </AuthProvider>
       </body>
     </html>
   );
