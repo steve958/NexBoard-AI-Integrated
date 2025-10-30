@@ -8,7 +8,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-black p-4" role="main">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 sm:p-8 bg-white dark:bg-zinc-900">
+      <div className="w-full max-w-md rounded-2xl nb-card p-6 sm:p-8">
         <h1 className="text-2xl font-semibold mb-4 text-zinc-900 dark:text-zinc-100 tracking-tight">
           Sign in to {process.env.NEXT_PUBLIC_APP_NAME ?? "NexBoard"}
         </h1>
@@ -23,7 +23,7 @@ export default function LoginPage() {
           }}
           aria-label="Continue with Google"
           disabled={loading}
-          className="h-10 px-4 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-400 disabled:opacity-60 flex items-center justify-center gap-2"
+          className="h-10 px-4 rounded-md nb-btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[--nb-ring] disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {loading && (
             <span className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin" aria-hidden="true" />

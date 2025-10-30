@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { Protected } from "@/components/Protected";
+import Header from "@/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,7 +49,10 @@ export default function RootLayout({
           </>
         ) : null}
         <AuthProvider>
-          <Protected>{children}</Protected>
+          <Protected>
+            <Header />
+            {children}
+          </Protected>
         </AuthProvider>
       </body>
     </html>
