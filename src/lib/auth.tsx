@@ -1,7 +1,7 @@
 "use client";
 import { ReactNode, useEffect, useMemo, useState, createContext, useContext } from "react";
 import { ensureUserDocument, getAuthClient, getGoogleProvider } from "@/lib/firebase";
-import { onAuthStateChanged, signOut, signInWithPopup, User } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInWithPopup, signInWithRedirect, User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 export type AuthState = {
@@ -20,7 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(getAuthClient(), async (u) => {
       setUser(u);
-      if (u) await ensureUserDocument(u);
+      if (u) {
+        try {
+          await ensureUserDocument(u);
+        } catch (e) {
+          console.error("ensureUserDocument error", e);
+        }
+      }
       setLoading(false);
     });
     return () => unsub();
@@ -31,9 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       signInWithGoogle: async () => {
-        await signInWithPopup(getAuthClient(), getGoogleProvider());
-        if (typeof window !== "undefined") {
-          console.log("analytics:event", { name: "auth_login" });
+        try {
+          await signInWithPopup(getAuthClient(), getGoogleProvider());
+        } catch (err) {
+          console.warn("Popup sign-in failed, falling back to redirect", err);
+          await signInWithRedirect(getAuthClient(), getGoogleProvider());
+        } finally {
+          if (typeof window !== "undefined") {
+            // Emit GA4 login event if gtag is available
+            // @ts-ignore
+            window.gtag && window.gtag('event', 'login', { method: 'Google' });
+          }
         }
       },
       signOutUser: async () => {

@@ -30,15 +30,20 @@ export function getGoogleProvider() {
 }
 
 export async function ensureUserDocument(user: User) {
-  const ref = doc(getDbClient(), "users", user.uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      uid: user.uid,
-      email: user.email,
-      name: user.displayName,
-      avatarUrl: user.photoURL,
-      createdAt: serverTimestamp(),
-    });
+  try {
+    const ref = doc(getDbClient(), "users", user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName,
+        avatarUrl: user.photoURL,
+        createdAt: serverTimestamp(),
+      });
+    }
+  } catch (e) {
+    console.error("Failed to ensure user document", e);
+    throw e;
   }
 }
