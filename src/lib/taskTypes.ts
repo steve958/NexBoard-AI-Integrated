@@ -5,9 +5,9 @@ export type Task = {
   columnId: string;
   order: string;
   assigneeId?: string;
-  dueDate?: any;
+  dueDate?: import("firebase/firestore").Timestamp | string | Date | number | null;
   parentTaskId?: string | null;
-  createdAt?: any;
-  updatedAt?: any;
+  createdAt?: import("firebase/firestore").Timestamp | null;
+  updatedAt?: import("firebase/firestore").Timestamp | null;
 };
 

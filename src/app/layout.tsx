@@ -5,6 +5,10 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { Protected } from "@/components/Protected";
 import Header from "@/components/Header";
+import CommandPalette from "@/components/CommandPalette";
+import ToastProvider from "@/components/ToastProvider";
+import HelpOverlay from "@/components/HelpOverlay";
+import ThemeProvider from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,10 +32,27 @@ export default function RootLayout({
 }>) {
   const GA_ID = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme') || 'system';
+                  const resolved = theme === 'system' 
+                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : theme;
+                  if (resolved === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         {GA_ID ? (
           <>
             <Script
@@ -48,12 +69,18 @@ export default function RootLayout({
             </Script>
           </>
         ) : null}
-        <AuthProvider>
-          <Protected>
-            <Header />
-            {children}
-          </Protected>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Protected>
+              <ToastProvider>
+                <Header />
+                {children}
+                <CommandPalette />
+                <HelpOverlay />
+              </ToastProvider>
+            </Protected>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

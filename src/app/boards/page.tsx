@@ -4,6 +4,7 @@ import { createProject, listenProjectsForUser, renameProject, archiveProject, ad
 import type { Project } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getUsersByIds, type UserProfile } from "@/lib/projects";
+import Link from "next/link";
 
 export default function BoardsPage() {
   const { user } = useAuth();
@@ -23,15 +24,15 @@ export default function BoardsPage() {
 
   return (
     <main className="min-h-screen p-6 sm:p-8">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-5xl">
         <header className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Boards</h1>
+          <h1 className="text-2xl font-semibold tracking-tight nb-brand-text">Boards</h1>
           <div className="flex items-center gap-2">
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="New board name"
-              className="h-10 px-3 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent"
+              className="h-10 px-3 rounded-md bg-transparent border border-white/10"
             />
             <button
               disabled={!newName || busy}
@@ -45,20 +46,21 @@ export default function BoardsPage() {
                   setBusy(false);
                 }
               }}
-              className="h-10 px-4 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="h-10 px-4 rounded-md nb-btn-primary disabled:opacity-60"
             >
               Create Board
             </button>
           </div>
         </header>
-        <ul className="space-y-2">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((p) => (
-            <li key={p.projectId} className="flex items-center justify-between nb-card rounded-md p-3">
+            <li key={p.projectId} className="nb-card nb-shadow rounded-xl p-4 flex flex-col justify-between">
               <div>
-                <div className="font-medium text-zinc-900 dark:text-zinc-50">{p.name}</div>
-                <div className="text-sm text-zinc-500">Members: {p.members.length}</div>
+                <div className="font-medium text-lg">{p.name}</div>
+                <div className="text-sm opacity-70 mt-1">Members: {p.members.length}</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-4">
+                <Link href={`/boards/${p.projectId}`} className="h-9 px-3 rounded-md nb-btn-primary flex items-center">Open</Link>
                 <button
                   onClick={async () => {
                     const isOpen = openMembers[p.projectId];
@@ -81,8 +83,9 @@ export default function BoardsPage() {
                         if (!email) return;
                         try {
                           await addMemberByEmail(p.projectId, email.trim());
-                        } catch (e:any) {
-                          alert(e.message || "Failed to add member");
+                        } catch (e: unknown) {
+                          const msg = (e as Error)?.message || "Failed to add member";
+                          alert(msg);
                         }
                       }}
                       className="h-9 px-3 rounded-md border"
@@ -95,8 +98,9 @@ export default function BoardsPage() {
                         if (!email) return;
                         try {
                           await removeMemberByEmail(p.projectId, email.trim());
-                        } catch (e:any) {
-                          alert(e.message || "Failed to remove member");
+                        } catch (e: unknown) {
+                          const msg = (e as Error)?.message || "Failed to remove member";
+                          alert(msg);
                         }
                       }}
                       className="h-9 px-3 rounded-md border"
@@ -105,7 +109,6 @@ export default function BoardsPage() {
                     </button>
                   </>
                 )}
-                <a href={`/boards/${p.projectId}`} className="h-9 px-3 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 flex items-center">Open</a>
                 <button
                   onClick={async () => {
                     const name = prompt("Rename board", p.name);

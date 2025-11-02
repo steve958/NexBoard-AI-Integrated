@@ -1,6 +1,6 @@
 "use client";
-import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where, getDocs, arrayUnion, arrayRemove, documentId, writeBatch } from "firebase/firestore";
-import { getAuthClient, getDbClient } from "@/lib/firebase";
+import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where, getDocs, arrayUnion, arrayRemove, documentId, writeBatch } from "firebase/firestore";
+import { getDbClient } from "@/lib/firebase";
 import type { Project } from "@/lib/types";
 import { User } from "firebase/auth";
 
@@ -12,9 +12,9 @@ export function listenProjectsForUser(userId: string, cb: (projects: Project[]) 
   const unsub = onSnapshot(q, (snap) => {
     const items: Project[] = [];
     snap.forEach((d) => {
-      const data = d.data() as any;
+      const data = d.data() as Omit<Project, "projectId">;
       if (data.archived) return; // client-side filter for MVP
-      items.push({ projectId: d.id, ...data } as Project);
+      items.push({ projectId: d.id, ...data });
     });
     cb(items);
   });
@@ -80,7 +80,7 @@ export async function getUsersByIds(uids: string[]): Promise<UserProfile[]> {
     const q = query(collection(db, "users"), where(documentId(), "in", chunk));
     const snap = await getDocs(q);
     snap.forEach((d) => {
-      const data = d.data() as any;
+      const data = d.data() as { email?: string; name?: string };
       results.push({ uid: d.id, email: data.email, name: data.name });
     });
   }

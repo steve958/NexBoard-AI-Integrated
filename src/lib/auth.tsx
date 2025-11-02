@@ -2,7 +2,6 @@
 import { ReactNode, useEffect, useMemo, useState, createContext, useContext } from "react";
 import { ensureUserDocument, getAuthClient, getGoogleProvider } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, signInWithPopup, signInWithRedirect, User } from "firebase/auth";
-import { useRouter } from "next/navigation";
 
 export type AuthState = {
   user: User | null;
@@ -45,8 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
           if (typeof window !== "undefined") {
             // Emit GA4 login event if gtag is available
-            // @ts-ignore
-            window.gtag && window.gtag('event', 'login', { method: 'Google' });
+            // @ts-expect-error gtag is an optional global injected by GA
+            if (typeof window.gtag === 'function') {
+              window.gtag('event', 'login', { method: 'Google' });
+            }
           }
         }
       },

@@ -1,17 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #22323f; /* NexBoard deep navy */
-  --foreground: #f4f1ea; /* warm off-white */
-
-  /* NexBoard brand tokens */
+  /* Dark theme (default) */
+  --background: #22323f;
+  --foreground: #f4f1ea;
   --nb-bg: #22323f;
   --nb-ink: #f4f1ea;
   --nb-card: #2a3d4c;
-  --nb-accent: #f2c04d; /* amber */
+  --nb-accent: #f2c04d;
   --nb-teal: #2ea7a0;
   --nb-coral: #f06c6c;
   --nb-ring: #d8d2c6;
+}
+
+/* Light theme */
+:root[data-theme="light"] {
+  --background: #f8f6f3;
+  --foreground: #1d1d1d;
+  --nb-bg: #f8f6f3;
+  --nb-ink: #1d1d1d;
+  --nb-card: #ffffff;
+  --nb-accent: #d99e2a;
+  --nb-teal: #1d8179;
+  --nb-coral: #d93636;
+  --nb-ring: #d99e2a;
 }
 
 @theme inline {
@@ -19,13 +31,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #22323f;
-    --foreground: #f4f1ea;
-  }
 }
 
 body {
@@ -36,9 +41,12 @@ body {
 
 /* Brand utility classes */
 .nb-card { background-color: var(--nb-card); border: 1px solid color-mix(in srgb, var(--nb-ink) 12%, transparent); }
+.nb-surface { background-color: color-mix(in srgb, var(--nb-card) 70%, transparent); backdrop-filter: blur(8px); border: 1px solid color-mix(in srgb, var(--nb-ink) 10%, transparent); }
+.nb-shadow { box-shadow: 0 10px 25px rgb(0 0 0 / 0.25); }
 .nb-btn-primary { background-color: var(--nb-accent); color: #1d1d1d; }
 .nb-btn-primary:hover { filter: brightness(0.95); }
 .nb-btn-secondary { border: 1px solid color-mix(in srgb, var(--nb-ink) 20%, transparent); }
+.nb-brand-text { background: linear-gradient(90deg, var(--nb-accent), var(--nb-teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .nb-chip-teal { background-color: color-mix(in srgb, var(--nb-teal) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-coral { background-color: color-mix(in srgb, var(--nb-coral) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-amber { background-color: color-mix(in srgb, var(--nb-accent) 20%, transparent); color: #1d1d1d; }
