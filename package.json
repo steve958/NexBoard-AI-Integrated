@@ -10,7 +10,15 @@
     "test:rules": "firebase emulators:exec --only firestore 'node ./tests/rules.nonmember-deny.test.mjs'",
     "test:rules:roles": "firebase emulators:exec --only firestore 'node ./tests/rules.roles.test.mjs'",
     "test:rules:tokens": "firebase emulators:exec --only firestore 'node ./tests/rules.api-tokens.test.mjs'",
-    "test:rules:all": "firebase emulators:exec --only firestore 'node ./tests/rules.nonmember-deny.test.mjs && node ./tests/rules.roles.test.mjs && node ./tests/rules.api-tokens.test.mjs'"
+    "test:rules:users": "firebase emulators:exec --only firestore 'node ./tests/rules.users.test.mjs'",
+    "test:rules:projects": "firebase emulators:exec --only firestore 'node ./tests/rules.projects.test.mjs'",
+    "test:rules:columns": "firebase emulators:exec --only firestore 'node ./tests/rules.columns.test.mjs'",
+    "test:rules:notifications": "firebase emulators:exec --only firestore 'node ./tests/rules.notifications.test.mjs'",
+    "test:rules:all": "firebase emulators:exec --only firestore 'node ./tests/rules.projects.test.mjs && node ./tests/rules.users.test.mjs && node ./tests/rules.nonmember-deny.test.mjs && node ./tests/rules.roles.test.mjs && node ./tests/rules.columns.test.mjs && node ./tests/rules.notifications.test.mjs && node ./tests/rules.api-tokens.test.mjs'",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -21,6 +29,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.48.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
