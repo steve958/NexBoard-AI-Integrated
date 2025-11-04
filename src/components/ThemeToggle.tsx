@@ -6,7 +6,7 @@ export default function ThemeToggle() {
 
   const cycleTheme = () => {
     if (theme === "system") {
-      setTheme(resolvedTheme === "dark" ? "light" : "dark");
+      setTheme("dark");
     } else if (theme === "dark") {
       setTheme("light");
     } else {

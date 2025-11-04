@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Emit GA4 login event if gtag is available
             // @ts-expect-error gtag is an optional global injected by GA
             if (typeof window.gtag === 'function') {
+              // @ts-expect-error gtag is an optional global injected by GA
               window.gtag('event', 'login', { method: 'Google' });
             }
           }

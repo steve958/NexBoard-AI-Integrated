@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:rules": "node ./tests/rules.nonmember-deny.test.mjs"
+    "test:rules": "firebase emulators:exec --only firestore 'node ./tests/rules.nonmember-deny.test.mjs'",
+    "test:rules:roles": "firebase emulators:exec --only firestore 'node ./tests/rules.roles.test.mjs'",
+    "test:rules:tokens": "firebase emulators:exec --only firestore 'node ./tests/rules.api-tokens.test.mjs'",
+    "test:rules:all": "firebase emulators:exec --only firestore 'node ./tests/rules.nonmember-deny.test.mjs && node ./tests/rules.roles.test.mjs && node ./tests/rules.api-tokens.test.mjs'"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

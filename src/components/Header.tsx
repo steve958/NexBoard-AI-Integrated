@@ -70,6 +70,7 @@ export default function Header() {
         <nav className="flex items-center gap-3 text-sm relative">
           {user && <Link href="/boards" className="hover:underline">Boards</Link>}
           {user && <Link href="/my-tasks" className="hover:underline">My Tasks</Link>}
+          {user && <Link href="/settings" className="hover:underline">Settings</Link>}
           <ThemeToggle />
           {user && projectId && (
             <div className="relative">

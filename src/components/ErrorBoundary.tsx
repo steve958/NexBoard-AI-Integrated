@@ -8,10 +8,11 @@ export default class ErrorBoundary extends React.Component<{ children: React.Rea
   componentDidCatch(error: unknown, info: React.ErrorInfo) { console.error("Board error:", error, info); }
   render() {
     if (this.state.error) {
+      const errorMessage = this.state.error instanceof Error ? this.state.error.message : String(this.state.error);
       return (
         <div className="p-6">
           <h2 className="text-red-400 font-semibold mb-2">Something went wrong.</h2>
-          <pre className="text-xs opacity-70 whitespace-pre-wrap">{String(this.state.error?.message || this.state.error)}</pre>
+          <pre className="text-xs opacity-70 whitespace-pre-wrap">{errorMessage}</pre>
         </div>
       );
     }

@@ -34,7 +34,13 @@ export default function TaskEditor({
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [assigneeId, setAssigneeId] = useState<string | undefined>(task.assigneeId);
-  const [dueDate, setDueDate] = useState<string | undefined>(task.dueDate ? new Date(task.dueDate.toDate?.() ?? task.dueDate).toISOString().slice(0,10) : undefined);
+  const [dueDate, setDueDate] = useState<string | undefined>(() => {
+    if (!task.dueDate) return undefined;
+    const date = typeof task.dueDate === 'object' && task.dueDate && 'toDate' in task.dueDate
+      ? (task.dueDate as { toDate: () => Date }).toDate()
+      : new Date(task.dueDate);
+    return date.toISOString().slice(0, 10);
+  });
   const [busy, setBusy] = useState(false);
   const doneCount = (subtasks || []).filter((s) => s.columnId === doneColumnId).length;
   const total = (subtasks || []).length;

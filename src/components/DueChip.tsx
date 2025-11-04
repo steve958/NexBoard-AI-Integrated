@@ -2,16 +2,20 @@
 import React from "react";
 
 type FirestoreTimestampLike = { toDate: () => Date };
-function parseDue(due: string | Date | FirestoreTimestampLike | number | undefined): Date | undefined {
+function parseDue(due: string | Date | FirestoreTimestampLike | number | null | undefined): Date | undefined {
   if (!due) return undefined;
   if (typeof due === "string") return new Date(due);
+  if (due instanceof Date) return due;
   // Firestore Timestamp
   if (typeof due === "object" && due && "toDate" in due && typeof (due as FirestoreTimestampLike).toDate === "function") return (due as FirestoreTimestampLike).toDate();
-  const t = new Date(due);
-  return isNaN(t.getTime()) ? undefined : t;
+  if (typeof due === "number") {
+    const t = new Date(due);
+    return isNaN(t.getTime()) ? undefined : t;
+  }
+  return undefined;
 }
 
-export default function DueChip({ due }: { due?: string | Date | FirestoreTimestampLike | number }) {
+export default function DueChip({ due }: { due?: string | Date | FirestoreTimestampLike | number | null }) {
   const date = parseDue(due);
   if (!date) return null;
   const today = new Date();
