@@ -209,85 +209,341 @@ export default function BoardClient({ boardId }: { boardId: string }) {
       ) : !project ? (
         <main className="p-6">Loading…</main>
       ) : (
-        <main className="min-h-screen p-6 sm:p-8">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <h1 className="text-2xl font-semibold nb-brand-text">{project.name}</h1>
-                <Link href="/boards" className="h-9 px-3 rounded-md nb-btn-secondary hover:bg-white/5">All Boards</Link>
-              </div>
-              {allTasks.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
-                    <div 
-                      className="h-full nb-chip-teal transition-all duration-300"
-                      style={{ width: `${progress.percentage}%` }}
-                    />
+        <main className="min-h-screen" style={{ backgroundColor: 'var(--nb-bg)' }}>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-4xl font-black nb-brand-text mb-2 tracking-tight">{project.name}</h1>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-teal) 10%, transparent)' }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-teal)' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <span className="text-sm font-bold" style={{ color: 'var(--nb-teal)' }}>
+                        {allTasks.length} {allTasks.length === 1 ? 'task' : 'tasks'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-accent) 10%, transparent)' }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-accent)' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                      </svg>
+                      <span className="text-sm font-bold" style={{ color: 'var(--nb-accent)' }}>
+                        {columns.length} {columns.length === 1 ? 'column' : 'columns'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-xs opacity-70 whitespace-nowrap">
-                    {progress.done}/{progress.total} ({progress.percentage}%)
+                </div>
+                <Link
+                  href="/boards"
+                  className="h-11 px-5 rounded-xl nb-btn-secondary hover:bg-white/5 flex items-center gap-2.5 font-semibold transition-all hover:scale-105 active:scale-95 shadow-md"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  All Boards
+                </Link>
+              </div>
+
+              {/* Progress Bar */}
+              {allTasks.length > 0 && (
+                <div className="nb-card-elevated rounded-2xl p-6 shadow-lg border border-opacity-10" style={{ borderColor: 'var(--nb-ink)' }}>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-16 h-16 rounded-xl flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--nb-teal), var(--nb-accent))' }}>
+                        <span className="text-white text-xl font-bold z-10">{progress.percentage}%</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-base font-bold tracking-tight" style={{ color: 'var(--nb-ink)' }}>Overall Progress</span>
+                      </div>
+                      <div className="h-4 rounded-full overflow-hidden shadow-inner" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 8%, transparent)' }}>
+                        <div
+                          className="h-full transition-all duration-700 ease-out relative overflow-hidden"
+                          style={{
+                            width: `${progress.percentage}%`,
+                            background: 'linear-gradient(90deg, var(--nb-teal), var(--nb-accent))',
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-sm font-semibold" style={{ color: 'var(--nb-teal)' }}>
+                          {progress.done} completed
+                        </span>
+                        <span className="text-sm" style={{ color: 'color-mix(in srgb, var(--nb-ink) 50%, transparent)' }}>
+                          • {progress.total - progress.done} remaining
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Board Columns */}
             <DragDropContext onDragEnd={onDragEnd}>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {columns.map((c) => (
-                  <Droppable droppableId={c.columnId} key={c.columnId}>
-                    {(provided) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps} className="rounded-xl nb-card nb-shadow p-3 min-h-[240px]">
-                        <div className="font-medium mb-2 flex items-center justify-between">
-                          <span>{c.name}</span>
-                          {userCanEdit && (
-                            <div className="flex items-center gap-2">
-                              <input
-                                ref={(el) => { inputRefs.current.set(c.columnId, el); }}
-                                value={newTitle[c.columnId] || ""}
-                                onChange={(e) => setNewTitle({ ...newTitle, [c.columnId]: e.target.value })}
-                                placeholder="New task"
-                                className="h-8 px-2 rounded-md bg-transparent border border-white/10"
-                              />
-                          <button onClick={async () => { const title = (newTitle[c.columnId] || "").trim(); if (!title || !project) return; try { await createTask(project.projectId, c.columnId, title); setNewTitle({ ...newTitle, [c.columnId]: "" }); setColErrors((e)=>({ ...e, [c.columnId]: undefined })); addToast({ title: 'Task created', kind: 'success' }); } catch (e: unknown) { const msg = (e as Error)?.message || 'Create failed'; setColErrors((prev)=>({ ...prev, [c.columnId]: msg })); addToast({ title: msg, kind: 'error' }); } }} className="h-8 px-3 rounded-md nb-btn-primary">Add</button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {columns.map((c) => {
+                  const columnTasks = tasks[c.columnId] || [];
+                  return (
+                    <div
+                      key={c.columnId}
+                      className="rounded-2xl"
+                      style={{
+                        backgroundColor: 'var(--nb-card)',
+                        border: '1px solid color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)',
+                        minHeight: '500px',
+                      }}
+                    >
+                      {/* Column Header */}
+                      <div className="p-6 pb-4 border-b" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-1 h-6 rounded-full" style={{ backgroundColor: 'var(--nb-teal)' }}></div>
+                                <h2 className="font-bold text-lg tracking-tight" style={{ color: 'var(--nb-ink)' }}>{c.name}</h2>
+                                <span
+                                  className="px-2.5 py-1 rounded-full text-xs font-bold"
+                                  style={{
+                                    backgroundColor: 'color-mix(in srgb, var(--nb-teal) 20%, transparent)',
+                                    color: 'var(--nb-teal)'
+                                  }}
+                                >
+                                  {columnTasks.length}
+                                </span>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        {colErrors[c.columnId] && (<div className="text-xs text-red-300 mb-1">{colErrors[c.columnId]}</div>)}
-                        <div className="space-y-2">
-                          {(tasks[c.columnId] || []).map((t, idx) => {
-                            const subs = Object.values(tasks).flat().filter((st) => st.parentTaskId === t.taskId);
-                            const doneCol = (columns.find(col=>col.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId;
-                            const doneCount = subs.filter((s) => s.columnId === doneCol).length;
-                            const hasSubtasks = subs.length > 0;
-                            return (
-                            <Draggable draggableId={t.taskId} index={idx} key={t.taskId} isDragDisabled={!userCanEdit}>
-                              {(prov) => (
-                                <button data-task-id={t.taskId} ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps} onClick={() => setSelectedTaskId(t.taskId)} className={`w-full text-left rounded-lg p-3 border transition-colors ${selectedTaskId===t.taskId ? 'ring-2 ring-[--nb-ring] bg-white/10 border-white/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`} tabIndex={selectedTaskId===t.taskId ? 0 : -1}>
-                                  <div className="text-sm font-medium flex items-center justify-between gap-2">
-                                    <span className="truncate">{t.title}</span>
-                                    <DueChip due={t.dueDate} />
-                                  </div>
-                                  {t.description && <div className="text-xs opacity-70 line-clamp-2 mt-1">{t.description}</div>}
-                                  {hasSubtasks && (
-                                    <div className="mt-2">
-                                      <div className="h-1 w-full rounded bg-white/10">
-                                        <div className="h-1 rounded nb-chip-teal" style={{ width: `${subs.length ? Math.round((doneCount / subs.length) * 100) : 0}%` }} />
+
+                            {/* Quick Add Input */}
+                            {userCanEdit && (
+                              <div className="flex gap-2.5">
+                                <input
+                                  ref={(el) => { inputRefs.current.set(c.columnId, el); }}
+                                  value={newTitle[c.columnId] || ""}
+                                  onChange={(e) => setNewTitle({ ...newTitle, [c.columnId]: e.target.value })}
+                                  onKeyDown={async (e) => {
+                                    if (e.key === 'Enter') {
+                                      const title = (newTitle[c.columnId] || "").trim();
+                                      if (!title || !project) return;
+                                      try {
+                                        await createTask(project.projectId, c.columnId, title);
+                                        setNewTitle({ ...newTitle, [c.columnId]: "" });
+                                        setColErrors((e)=>({ ...e, [c.columnId]: undefined }));
+                                        addToast({ title: 'Task created', kind: 'success' });
+                                      } catch (e: unknown) {
+                                        const msg = (e as Error)?.message || 'Create failed';
+                                        setColErrors((prev)=>({ ...prev, [c.columnId]: msg }));
+                                        addToast({ title: msg, kind: 'error' });
+                                      }
+                                    }
+                                  }}
+                                  placeholder="Add a task..."
+                                  className="flex-1 h-10 px-4 rounded-lg bg-transparent text-sm font-medium focus:outline-none focus:ring-2 transition-all placeholder:text-sm"
+                                  style={{
+                                    border: '2px solid color-mix(in srgb, var(--nb-ink) 12%, transparent)',
+                                    color: 'var(--nb-ink)',
+                                    caretColor: 'var(--nb-teal)',
+                                    '--tw-ring-color': 'var(--nb-teal)'
+                                  } as React.CSSProperties}
+                                />
+                                <button
+                                  onClick={async () => {
+                                    const title = (newTitle[c.columnId] || "").trim();
+                                    if (!title || !project) return;
+                                    try {
+                                      await createTask(project.projectId, c.columnId, title);
+                                      setNewTitle({ ...newTitle, [c.columnId]: "" });
+                                      setColErrors((e)=>({ ...e, [c.columnId]: undefined }));
+                                      addToast({ title: 'Task created', kind: 'success' });
+                                    } catch (e: unknown) {
+                                      const msg = (e as Error)?.message || 'Create failed';
+                                      setColErrors((prev)=>({ ...prev, [c.columnId]: msg }));
+                                      addToast({ title: msg, kind: 'error' });
+                                    }
+                                  }}
+                                  className="h-10 w-10 rounded-lg nb-btn-primary flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg"
+                                  title="Add task"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                            {colErrors[c.columnId] && (
+                              <div className="text-xs mt-2 px-2 py-1 rounded" style={{ color: 'var(--nb-coral)', backgroundColor: 'color-mix(in srgb, var(--nb-coral) 10%, transparent)' }}>
+                                {colErrors[c.columnId]}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Tasks List */}
+                          <Droppable droppableId={c.columnId}>
+                            {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className="p-4"
+                            style={{
+                              backgroundColor: snapshot.isDraggingOver
+                                ? 'color-mix(in srgb, var(--nb-teal) 5%, transparent)'
+                                : 'transparent',
+                              borderRadius: snapshot.isDraggingOver ? '12px' : '0',
+                              minHeight: '300px',
+                            }}
+                          >
+                            {columnTasks.length === 0 && (
+                              <div className="flex flex-col items-center justify-center py-12 px-4">
+                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 5%, transparent)' }}>
+                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'color-mix(in srgb, var(--nb-ink) 30%, transparent)' }}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                  </svg>
+                                </div>
+                                <p className="text-sm font-medium text-center" style={{ color: 'color-mix(in srgb, var(--nb-ink) 40%, transparent)' }}>
+                                  No tasks yet
+                                </p>
+                                {userCanEdit && (
+                                  <p className="text-xs text-center mt-1" style={{ color: 'color-mix(in srgb, var(--nb-ink) 30%, transparent)' }}>
+                                    Drag a task here or use the quick add above
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {columnTasks.map((t, idx) => {
+                              const subs = Object.values(tasks).flat().filter((st) => st.parentTaskId === t.taskId);
+                              const doneCol = (columns.find(col=>col.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId;
+                              const doneCount = subs.filter((s) => s.columnId === doneCol).length;
+                              const hasSubtasks = subs.length > 0;
+                              const assignee = memberProfiles.find((mp) => mp.uid === t.assigneeId);
+
+                              return (
+                                <Draggable draggableId={t.taskId} index={idx} key={t.taskId} isDragDisabled={!userCanEdit}>
+                                  {(prov, dragSnapshot) => (
+                                    <div
+                                      data-task-id={t.taskId}
+                                      ref={prov.innerRef}
+                                      {...prov.draggableProps}
+                                      {...prov.dragHandleProps}
+                                      onClick={() => setSelectedTaskId(t.taskId)}
+                                      className="w-full rounded-xl p-4 group relative mb-3"
+                                      style={{
+                                        backgroundColor: 'var(--nb-card)',
+                                        boxShadow: dragSnapshot.isDragging
+                                          ? '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--nb-teal)'
+                                          : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                        opacity: dragSnapshot.isDragging ? 0.95 : 1,
+                                        border: selectedTaskId === t.taskId
+                                          ? '2px solid var(--nb-ring)'
+                                          : '1px solid color-mix(in srgb, var(--nb-ink) 10%, transparent)',
+                                        cursor: userCanEdit ? (dragSnapshot.isDragging ? 'grabbing' : 'grab') : 'pointer',
+                                        transition: 'none',
+                                        ...prov.draggableProps.style,
+                                      }}
+                                      tabIndex={selectedTaskId===t.taskId ? 0 : -1}
+                                    >
+                                      {/* Drag Indicator */}
+                                      {userCanEdit && !dragSnapshot.isDragging && (
+                                        <div
+                                          className="absolute right-2 top-[50%] opacity-0 group-hover:opacity-40 transition-opacity duration-200"
+                                          style={{ color: 'var(--nb-teal)', marginTop: '-10px', pointerEvents: 'none' }}
+                                        >
+                                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M9 3a2 2 0 100 4 2 2 0 000-4zm0 7a2 2 0 100 4 2 2 0 000-4zm0 7a2 2 0 100 4 2 2 0 000-4zm6-14a2 2 0 100 4 2 2 0 000-4zm0 7a2 2 0 100 4 2 2 0 000-4zm0 7a2 2 0 100 4 2 2 0 000-4z"/>
+                                          </svg>
+                                        </div>
+                                      )}
+
+                                      {/* Task Header */}
+                                      <div className="flex items-start gap-2 mb-3">
+                                        <h3 className="flex-1 text-base font-bold leading-snug tracking-tight" style={{ color: 'var(--nb-ink)' }}>
+                                          {t.title}
+                                        </h3>
+                                        <DueChip due={t.dueDate} />
                                       </div>
-                                      <div className="text-[10px] opacity-60 mt-0.5">{doneCount}/{subs.length} subtasks</div>
+
+                                      {/* Description */}
+                                      {t.description && (
+                                        <p className="text-xs leading-relaxed line-clamp-2 mb-3" style={{ color: 'color-mix(in srgb, var(--nb-ink) 65%, transparent)' }}>
+                                          {t.description}
+                                        </p>
+                                      )}
+
+                                      {/* Subtasks Progress */}
+                                      {hasSubtasks && (
+                                        <div className="mb-3 p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-teal) 5%, transparent)' }}>
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-teal)' }}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                            </svg>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>
+                                              Subtasks
+                                            </span>
+                                          </div>
+                                          <div className="h-2.5 w-full rounded-full overflow-hidden mb-2" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 10%, transparent)' }}>
+                                            <div
+                                              className="h-2.5 rounded-full transition-all duration-500 ease-out"
+                                              style={{
+                                                width: `${subs.length ? Math.round((doneCount / subs.length) * 100) : 0}%`,
+                                                background: 'linear-gradient(90deg, var(--nb-teal), var(--nb-accent))'
+                                              }}
+                                            />
+                                          </div>
+                                          <div className="text-xs font-bold" style={{ color: 'var(--nb-teal)' }}>
+                                            {doneCount}/{subs.length} completed
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Footer - Assignee */}
+                                      {t.assigneeId && (
+                                        <div className="flex items-center gap-2.5 pt-3 mt-3 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
+                                          <Avatar uid={t.assigneeId} name={assignee?.name} email={assignee?.email} size={28} />
+                                          <div className="flex-1">
+                                            <span className="text-xs font-bold block" style={{ color: 'var(--nb-ink)' }}>
+                                              {assignee?.name || assignee?.email || 'Assignee'}
+                                            </span>
+                                            <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 50%, transparent)' }}>
+                                              Assigned
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Selected Indicator */}
+                                      {selectedTaskId === t.taskId && (
+                                        <>
+                                          <div
+                                            className="absolute top-0 right-0 w-1.5 h-full rounded-l-full"
+                                            style={{
+                                              background: 'linear-gradient(180deg, var(--nb-teal), var(--nb-accent))',
+                                              boxShadow: '0 0 8px var(--nb-teal)'
+                                            }}
+                                          />
+                                          <div
+                                            className="absolute inset-0 rounded-xl pointer-events-none"
+                                            style={{
+                                              boxShadow: 'inset 0 0 0 2px var(--nb-ring)',
+                                              animation: 'pulse 2s ease-in-out infinite'
+                                            }}
+                                          />
+                                        </>
+                                      )}
                                     </div>
                                   )}
-                                  <div className="mt-2 flex items-center gap-2 text-xs opacity-80">
-                                    {(() => { const m = memberProfiles.find((mp) => mp.uid === t.assigneeId); return t.assigneeId ? (<div className="flex items-center gap-1"><Avatar uid={t.assigneeId!} name={m?.name} email={m?.email} /><span>{m?.name || m?.email || 'Assignee'}</span></div>) : null; })()}
-                                  </div>
-                                </button>
-                              )}
-                            </Draggable>
-                          );})}
-                          {provided.placeholder}
+                                </Draggable>
+                              );
+                            })}
+                            {provided.placeholder}
+                          </div>
+                            )}
+                          </Droppable>
                         </div>
-                      </div>
-                    )}
-                  </Droppable>
-                ))}
+                  );
+                })}
               </div>
             </DragDropContext>
           </div>
@@ -319,7 +575,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
               const projectId = project!.projectId;
               const taskId = editing.taskId;
               const oldTask = editing;
-              
+
               // Check for assignment change
               if (data.assigneeId && data.assigneeId !== oldTask.assigneeId && data.assigneeId !== user!.uid) {
                 const { addNotification } = await import("@/lib/notifications");
@@ -332,7 +588,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                   text: oldTask.title,
                 });
               }
-              
+
               await updateTask(projectId, taskId, data);
             }}
             onDelete={async () => {
