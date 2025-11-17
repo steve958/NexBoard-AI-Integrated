@@ -1,6 +1,7 @@
 "use client";
 import { useAuth } from "@/lib/auth";
 import { createProject, listenProjectsForUser, renameProject, deleteProject, addMemberByEmail, removeMemberByEmail } from "@/lib/projects";
+import { countTodoTasksForBoards } from "@/lib/tasks";
 import type { Project } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getUsersByIds, type UserProfile } from "@/lib/projects";
@@ -15,12 +16,25 @@ export default function BoardsPage() {
   const [busy, setBusy] = useState(false);
   const [openMembers, setOpenMembers] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile[]>>({});
+  const [taskCounts, setTaskCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
     const unsub = listenProjectsForUser(user.uid, setProjects);
     return () => unsub();
   }, [user]);
+
+  // Load task counts when projects change
+  useEffect(() => {
+    if (projects.length === 0) return;
+
+    const loadTaskCounts = async () => {
+      const counts = await countTodoTasksForBoards(projects.map(p => p.projectId));
+      setTaskCounts(counts);
+    };
+
+    loadTaskCounts();
+  }, [projects]);
 
   if (!user) return null;
 
@@ -64,11 +78,21 @@ export default function BoardsPage() {
             <li key={p.projectId} className="nb-card-elevated rounded-2xl p-6 flex flex-col justify-between group">
               <div className="mb-5">
                 <h3 className="font-semibold text-xl mb-2" style={{ color: 'var(--nb-ink)' }}>{p.name}</h3>
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  <span className="font-medium">{p.members.length} {p.members.length === 1 ? 'member' : 'members'}</span>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span className="font-medium">{p.members.length} {p.members.length === 1 ? 'member' : 'members'}</span>
+                  </div>
+                  <div className="flex items-center gap-2" style={{ color: 'var(--nb-teal)' }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span className="font-bold">
+                      {taskCounts[p.projectId] ?? '...'} {(taskCounts[p.projectId] ?? 0) === 1 ? 'task' : 'tasks'}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="space-y-3">

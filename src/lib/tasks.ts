@@ -58,3 +58,46 @@ export function computeNewOrder(siblings: Task[], index: number): string {
   const next = index < siblings.length && siblings[index] ? siblings[index].order : null;
   return between(prev, next);
 }
+
+// Count todo (non-done) tasks for a board
+export async function countTodoTasksForBoard(projectId: string): Promise<number> {
+  const db = getDbClient();
+
+  // Get all columns to find the "done" column
+  const columnsSnap = await (await import("firebase/firestore")).getDocs(
+    collection(db, `projects/${projectId}/columns`)
+  );
+
+  const doneColumnId = columnsSnap.docs
+    .find(doc => doc.data().name?.toLowerCase().includes('done'))?.id;
+
+  // Get all tasks
+  const tasksSnap = await (await import("firebase/firestore")).getDocs(
+    collection(db, `projects/${projectId}/tasks`)
+  );
+
+  // Count tasks that are NOT in the done column
+  let count = 0;
+  tasksSnap.forEach(doc => {
+    const task = doc.data();
+    if (!doneColumnId || task.columnId !== doneColumnId) {
+      count++;
+    }
+  });
+
+  return count;
+}
+
+// Count todo tasks for multiple boards at once
+export async function countTodoTasksForBoards(projectIds: string[]): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+
+  // Process boards in parallel for better performance
+  await Promise.all(
+    projectIds.map(async (projectId) => {
+      counts[projectId] = await countTodoTasksForBoard(projectId);
+    })
+  );
+
+  return counts;
+}
