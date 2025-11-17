@@ -24,7 +24,7 @@ export default function MyProjectsPage() {
 
       // Get task counts for all projects
       if (projs.length > 0) {
-        const counts = await countTasksByProjects(projs.map(p => p.projectId));
+        const counts = await countTasksByProjects(projs.map(p => p.projectId), user.uid);
         setTaskCounts(counts);
       }
     });

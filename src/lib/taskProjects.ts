@@ -54,13 +54,16 @@ export async function deleteTaskProject(projectId: string) {
 }
 
 // Count tasks across all boards that reference this project
-export async function countTasksByProject(projectId: string): Promise<number> {
+export async function countTasksByProject(projectId: string, userId: string): Promise<number> {
   const db = getDbClient();
 
   // We need to query all boards and their tasks
   // This is a bit expensive but necessary given the data structure
-  // Get all boards/projects (the main "projects" collection represents boards)
-  const boardsQuery = query(collection(db, "projects"));
+  // Get only boards where the user is a member (to satisfy security rules)
+  const boardsQuery = query(
+    collection(db, "projects"),
+    where("members", "array-contains", userId)
+  );
   const boardsSnap = await getDocs(boardsQuery);
 
   let count = 0;
@@ -79,15 +82,18 @@ export async function countTasksByProject(projectId: string): Promise<number> {
 }
 
 // Get task counts for multiple projects at once
-export async function countTasksByProjects(projectIds: string[]): Promise<Record<string, number>> {
+export async function countTasksByProjects(projectIds: string[], userId: string): Promise<Record<string, number>> {
   const db = getDbClient();
   const counts: Record<string, number> = {};
 
   // Initialize all counts to 0
   projectIds.forEach(id => counts[id] = 0);
 
-  // Get all boards
-  const boardsQuery = query(collection(db, "projects"));
+  // Get only boards where the user is a member (to satisfy security rules)
+  const boardsQuery = query(
+    collection(db, "projects"),
+    where("members", "array-contains", userId)
+  );
   const boardsSnap = await getDocs(boardsQuery);
 
   // For each board, get all tasks and count by projectId
