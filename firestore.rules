@@ -91,5 +91,20 @@ service cloud.firestore {
       // Users can delete their own tokens
       allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
+
+    match /taskProjects/{projectId} {
+      // Users can only read their own task projects
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Users can only create task projects where they are the owner
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.name is string;
+      // Users can only update their own task projects
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId; // Prevent userId change
+      // Users can delete their own task projects
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
   }
 }

@@ -1,5 +1,5 @@
 "use client";
-import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where, getDocs, arrayUnion, arrayRemove, documentId, writeBatch } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where, getDocs, arrayUnion, arrayRemove, documentId, writeBatch, deleteDoc } from "firebase/firestore";
 import { getDbClient } from "@/lib/firebase";
 import type { Project } from "@/lib/types";
 import { User } from "firebase/auth";
@@ -49,6 +49,27 @@ export async function renameProject(projectId: string, name: string) {
 export async function archiveProject(projectId: string) {
   const db = getDbClient();
   await updateDoc(doc(db, PROJECTS, projectId), { archived: true });
+}
+
+export async function deleteProject(projectId: string) {
+  const db = getDbClient();
+  const batch = writeBatch(db);
+
+  // Delete all subcollections
+  const subcollections = ["columns", "tasks", "comments", "notifications"];
+
+  for (const subcol of subcollections) {
+    const subcolRef = collection(db, `projects/${projectId}/${subcol}`);
+    const snapshot = await getDocs(subcolRef);
+    snapshot.forEach((docSnapshot) => {
+      batch.delete(docSnapshot.ref);
+    });
+  }
+
+  // Delete the project document itself
+  batch.delete(doc(db, PROJECTS, projectId));
+
+  await batch.commit();
 }
 
 export async function addMemberByEmail(projectId: string, email: string) {
