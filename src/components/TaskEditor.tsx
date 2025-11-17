@@ -15,6 +15,8 @@ export default function TaskEditor({
   subtasks = [],
   onCreateSubtask,
   onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
   onSave,
   onDelete,
   onClose,
@@ -28,6 +30,8 @@ export default function TaskEditor({
   subtasks?: Task[];
   onCreateSubtask: (title: string) => Promise<void>;
   onToggleSubtask: (sub: Task, done: boolean) => Promise<void>;
+  onEditSubtask: (sub: Task, newTitle: string) => Promise<void>;
+  onDeleteSubtask: (sub: Task) => Promise<void>;
   onSave: (data: Partial<Task>) => Promise<void>;
   onDelete: () => Promise<void>;
   onClose: () => void;
@@ -271,6 +275,8 @@ export default function TaskEditor({
           subtasks={subtasks}
           onToggle={onToggleSubtask}
           onCreate={onCreateSubtask}
+          onEdit={onEditSubtask}
+          onDelete={onDeleteSubtask}
           doneColumnId={doneColumnId}
         />
       </div>

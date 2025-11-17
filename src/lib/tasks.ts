@@ -11,7 +11,10 @@ export function listenTasksByColumn(projectId: string, columnId: string, cb: (ta
     const items: Task[] = [];
     snap.forEach((d) => {
       const data = d.data() as Omit<Task, "taskId">;
-      items.push({ taskId: d.id, ...data });
+      // Only include tasks that are NOT subtasks (don't have a parentTaskId)
+      if (!data.parentTaskId) {
+        items.push({ taskId: d.id, ...data });
+      }
     });
     cb(items);
   });
@@ -76,11 +79,12 @@ export async function countTodoTasksForBoard(projectId: string): Promise<number>
     collection(db, `projects/${projectId}/tasks`)
   );
 
-  // Count tasks that are NOT in the done column
+  // Count tasks that are NOT in the done column AND are NOT subtasks
   let count = 0;
   tasksSnap.forEach(doc => {
     const task = doc.data();
-    if (!doneColumnId || task.columnId !== doneColumnId) {
+    // Exclude subtasks (tasks with parentTaskId) and tasks in done column
+    if (!task.parentTaskId && (!doneColumnId || task.columnId !== doneColumnId)) {
       count++;
     }
   });

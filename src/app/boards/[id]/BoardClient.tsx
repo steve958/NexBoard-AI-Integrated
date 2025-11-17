@@ -617,6 +617,21 @@ export default function BoardClient({ boardId }: { boardId: string }) {
             if (!col) return;
             await updateTask(project.projectId, sub.taskId, { columnId: col });
           }}
+          onEditSubtask={async (sub, newTitle) => {
+            await updateTask(project.projectId, sub.taskId, { title: newTitle });
+            addToast({ title: 'Subtask updated', kind: 'success' });
+          }}
+          onDeleteSubtask={async (sub) => {
+            const confirmed = await confirm({
+              title: 'Delete Subtask',
+              message: `Are you sure you want to delete "${sub.title}"?`,
+              confirmText: 'Delete',
+              danger: true,
+            });
+            if (!confirmed) return;
+            await deleteTask(project.projectId, sub.taskId);
+            addToast({ title: 'Subtask deleted', kind: 'success' });
+          }}
           onSave={async (data) => {
             if (modalMode === 'create') {
               // Create new task

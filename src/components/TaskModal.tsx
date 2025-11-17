@@ -18,6 +18,8 @@ type TaskModalProps = {
   ownerId: string;
   onCreateSubtask: (title: string) => Promise<void>;
   onToggleSubtask: (sub: Task, done: boolean) => Promise<void>;
+  onEditSubtask: (sub: Task, newTitle: string) => Promise<void>;
+  onDeleteSubtask: (sub: Task) => Promise<void>;
   onSave: (data: Partial<Task>) => Promise<void>;
   onDelete: () => Promise<void>;
 };
@@ -36,6 +38,8 @@ export default function TaskModal({
   ownerId,
   onCreateSubtask,
   onToggleSubtask,
+  onEditSubtask,
+  onDeleteSubtask,
   onSave,
   onDelete,
 }: TaskModalProps) {
@@ -64,6 +68,8 @@ export default function TaskModal({
         subtasks={subtasks}
         onCreateSubtask={onCreateSubtask}
         onToggleSubtask={onToggleSubtask}
+        onEditSubtask={onEditSubtask}
+        onDeleteSubtask={onDeleteSubtask}
         onSave={onSave}
         onDelete={onDelete}
         onClose={onClose}

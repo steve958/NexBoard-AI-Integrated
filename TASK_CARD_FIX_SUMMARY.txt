@@ -1,0 +1,31 @@
+✅ TASK CARDS - REDESIGNED!
+
+🎯 IMPROVEMENTS APPLIED:
+
+1. Progress Bar (Subtasks)
+   ✨ Thicker: h-1 (4px) → h-1.5 (6px) - 50% more visible
+   ✨ Pill-shaped: rounded → rounded-full
+   ✨ Smooth animation: 300ms transition
+   ✨ Theme-aware: color-mix() for light/dark
+   ✨ Better text: "subtasks" → "completed"
+   ✨ Larger: 10px → 11px, font-medium
+
+2. Assignee Section
+   ✨ Added border-top separator
+   ✨ Better spacing: pt-3 mt-3
+   ✨ Larger gaps: gap-1 → gap-2
+   ✨ Font-medium for names
+   ✨ Cleaner code structure
+
+BEFORE:  ████░░░░ 2/4 subtasks
+         👤 John Doe
+
+AFTER:   █████░░░ 2/4 completed
+         ──────────────
+         👤 John Doe
+
+FILE CHANGED:
+src/app/boards/[id]/BoardClient.tsx (lines 282-303)
+
+TEST IT:
+npm run dev → Open a board with tasks → Check subtask progress
