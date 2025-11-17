@@ -625,6 +625,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                 await createTask(project.projectId, modalColumnId, data.title || 'Untitled', {
                   description: data.description,
                   assigneeId: data.assigneeId,
+                  projectId: data.projectId,
                   estimation: data.estimation,
                   priority: data.priority,
                   dueDate: data.dueDate,
