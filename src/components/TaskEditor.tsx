@@ -8,6 +8,7 @@ import SubtaskList from "@/components/SubtaskList";
 import CommentsThread from "@/components/CommentsThread";
 
 export default function TaskEditor({
+  mode = "edit",
   task,
   members = [],
   projectId,
@@ -23,6 +24,7 @@ export default function TaskEditor({
   currentUserId,
   ownerId,
 }: {
+  mode?: "create" | "edit";
   task: Task;
   members?: { uid: string; name?: string; email?: string }[];
   projectId: string;
@@ -269,46 +271,54 @@ export default function TaskEditor({
           </div>
         )}
       </div>
-      <div className="mt-6 pt-6 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
-        <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--nb-ink)' }}>Subtasks</label>
-        <SubtaskList
-          subtasks={subtasks}
-          onToggle={onToggleSubtask}
-          onCreate={onCreateSubtask}
-          onEdit={onEditSubtask}
-          onDelete={onDeleteSubtask}
-          doneColumnId={doneColumnId}
-        />
-      </div>
-      <div className="mt-6 pt-6 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
-        <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--nb-ink)' }}>Comments</label>
-        <CommentsThread projectId={projectId} taskId={task.taskId} currentUserId={currentUserId} ownerId={ownerId} members={members} taskAssigneeId={assigneeId} taskTitle={title} />
-      </div>
+      {mode === "edit" && (
+        <>
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
+            <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--nb-ink)' }}>Subtasks</label>
+            <SubtaskList
+              subtasks={subtasks}
+              onToggle={onToggleSubtask}
+              onCreate={onCreateSubtask}
+              onEdit={onEditSubtask}
+              onDelete={onDeleteSubtask}
+              doneColumnId={doneColumnId}
+            />
+          </div>
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
+            <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--nb-ink)' }}>Comments</label>
+            <CommentsThread projectId={projectId} taskId={task.taskId} currentUserId={currentUserId} ownerId={ownerId} members={members} taskAssigneeId={assigneeId} taskTitle={title} />
+          </div>
+        </>
+      )}
       <div className="mt-6 pt-4 flex items-center justify-between border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
-        <button
-          onClick={async () => {
-            if (busy) return;
-            const hasSubtasks = (subtasks || []).length > 0;
-            const title = hasSubtasks ? 'Delete task with subtasks?' : 'Delete task?';
-            const message = hasSubtasks
-              ? `Are you sure you want to delete "${task.title}"?\n\nThis task has ${subtasks!.length} subtask(s) that will be moved to the Backlog column.`
-              : `Are you sure you want to delete "${task.title}"?`;
-            const confirmed = await confirm({ title, message, confirmText: 'Delete', danger: true });
-            if (!confirmed) return;
-            setBusy(true);
-            try { await onDelete(); onClose(); } finally { setBusy(false); }
-          }}
-          className="h-10 px-5 rounded-lg font-semibold transition-all hover:scale-105 active:scale-95"
-          style={{
-            border: '2px solid var(--nb-coral)',
-            color: 'var(--nb-coral)',
-            backgroundColor: 'transparent'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--nb-coral) 10%, transparent)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-        >
-          Delete
-        </button>
+        {mode === "edit" ? (
+          <button
+            onClick={async () => {
+              if (busy) return;
+              const hasSubtasks = (subtasks || []).length > 0;
+              const title = hasSubtasks ? 'Delete task with subtasks?' : 'Delete task?';
+              const message = hasSubtasks
+                ? `Are you sure you want to delete "${task.title}"?\n\nThis task has ${subtasks!.length} subtask(s) that will be moved to the Backlog column.`
+                : `Are you sure you want to delete "${task.title}"?`;
+              const confirmed = await confirm({ title, message, confirmText: 'Delete', danger: true });
+              if (!confirmed) return;
+              setBusy(true);
+              try { await onDelete(); onClose(); } finally { setBusy(false); }
+            }}
+            className="h-10 px-5 rounded-lg font-semibold transition-all hover:scale-105 active:scale-95"
+            style={{
+              border: '2px solid var(--nb-coral)',
+              color: 'var(--nb-coral)',
+              backgroundColor: 'transparent'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--nb-coral) 10%, transparent)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            Delete
+          </button>
+        ) : (
+          <div></div>
+        )}
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}

@@ -27,12 +27,17 @@ export default function SubtaskList({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => {
+          onKeyDown={async (e) => {
             if (e.key === 'Enter') {
+              e.preventDefault();
               const t = title.trim();
               if (t) {
-                onCreate(t);
-                setTitle("");
+                try {
+                  await onCreate(t);
+                  setTitle("");
+                } catch (error) {
+                  // Error handled by parent component
+                }
               }
             }
           }}
@@ -43,15 +48,23 @@ export default function SubtaskList({
             color: 'var(--nb-ink)',
             caretColor: 'var(--nb-teal)',
           }}
+          type="text"
         />
         <button
-          onClick={async () => {
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const t = title.trim();
             if (!t) return;
-            await onCreate(t);
-            setTitle("");
+            try {
+              await onCreate(t);
+              setTitle("");
+            } catch (error) {
+              // Error handled by parent component
+            }
           }}
           className="h-8 px-4 rounded-lg nb-btn-primary text-sm font-semibold"
+          type="button"
         >
           Add
         </button>
@@ -140,12 +153,21 @@ export default function SubtaskList({
                       </svg>
                     </button>
                     <button
-                      onClick={() => onDelete(s)}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          await onDelete(s);
+                        } catch (error) {
+                          // Error handled by parent component
+                        }
+                      }}
                       className="h-7 w-7 rounded flex items-center justify-center transition-colors"
                       style={{ backgroundColor: 'transparent' }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--nb-coral) 10%, transparent)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       title="Delete subtask"
+                      type="button"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-coral)' }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

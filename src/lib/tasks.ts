@@ -20,6 +20,32 @@ export function listenTasksByColumn(projectId: string, columnId: string, cb: (ta
   });
 }
 
+export function listenSubtasks(projectId: string, parentTaskId: string, cb: (subtasks: Task[]) => void) {
+  const db = getDbClient();
+  const q = query(collection(db, `projects/${projectId}/tasks`), where("parentTaskId", "==", parentTaskId), orderBy("order"));
+  return onSnapshot(q, (snap) => {
+    const items: Task[] = [];
+    snap.forEach((d) => {
+      const data = d.data() as Omit<Task, "taskId">;
+      items.push({ taskId: d.id, ...data });
+    });
+    cb(items);
+  });
+}
+
+export function listenAllSubtasks(projectId: string, cb: (subtasks: Task[]) => void) {
+  const db = getDbClient();
+  const q = query(collection(db, `projects/${projectId}/tasks`), where("parentTaskId", "!=", null));
+  return onSnapshot(q, (snap) => {
+    const items: Task[] = [];
+    snap.forEach((d) => {
+      const data = d.data() as Omit<Task, "taskId">;
+      items.push({ taskId: d.id, ...data });
+    });
+    cb(items);
+  });
+}
+
 export async function createTask(projectId: string, columnId: string, title: string, extra?: Partial<Task>) {
   const db = getDbClient();
   const ref = collection(db, `projects/${projectId}/tasks`);

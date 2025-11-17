@@ -61,6 +61,7 @@ export default function TaskModal({
       title={mode === "create" ? "Create Task" : "Edit Task"}
     >
       <TaskEditor
+        mode={mode}
         task={displayTask}
         members={members}
         projectId={projectId}

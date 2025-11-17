@@ -12,7 +12,7 @@ import type { Task } from "@/lib/taskTypes";
 import type { TaskProject } from "@/lib/taskProjectTypes";
 import { listenUserTaskProjects } from "@/lib/taskProjects";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { listenTasksByColumn, createTask, updateTask, computeNewOrder, deleteTask, deleteTaskWithOrphans } from "@/lib/tasks";
+import { listenTasksByColumn, listenAllSubtasks, createTask, updateTask, computeNewOrder, deleteTask, deleteTaskWithOrphans } from "@/lib/tasks";
 import TaskModal from "@/components/TaskModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/ToastProvider";
@@ -35,6 +35,8 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   const [memberProfiles, setMemberProfiles] = useState<UserProfile[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [userProjects, setUserProjects] = useState<TaskProject[]>([]);
+  const [subtasks, setSubtasks] = useState<Task[]>([]); // Subtasks for the modal task
+  const [allSubtasks, setAllSubtasks] = useState<Task[]>([]); // All subtasks in the project
   const tasksUnsubsRef = useRef<(() => void)[]>([]);
   const { addToast } = useToast();
   const { confirm } = useDialog();
@@ -47,6 +49,23 @@ export default function BoardClient({ boardId }: { boardId: string }) {
     const unsub = listenUserTaskProjects(user.uid, setUserProjects);
     return () => unsub();
   }, [user]);
+
+  // Listen to all subtasks in the project
+  useEffect(() => {
+    if (!project) return;
+    const unsub = listenAllSubtasks(project.projectId, setAllSubtasks);
+    return () => unsub();
+  }, [project]);
+
+  // Filter allSubtasks for the current modal task
+  useEffect(() => {
+    if (!modalTask?.taskId) {
+      setSubtasks([]);
+      return;
+    }
+    const filtered = allSubtasks.filter(s => s.parentTaskId === modalTask.taskId);
+    setSubtasks(filtered);
+  }, [allSubtasks, modalTask?.taskId]);
 
   useEffect(() => {
     if (!user) return;
@@ -164,7 +183,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTaskId && project) {
         const task = Object.values(tasks).flat().find(t => t.taskId === selectedTaskId);
         if (!task) return;
-        const subs = Object.values(tasks).flat().filter((st) => st.parentTaskId === task.taskId);
+        const subs = allSubtasks.filter((st) => st.parentTaskId === task.taskId);
         const title = subs.length > 0 ? 'Delete task with subtasks?' : 'Delete task?';
         const message = subs.length > 0
           ? `Are you sure you want to delete "${task.title}"?\n\n${subs.length} subtask(s) will be moved to the Backlog column.`
@@ -402,7 +421,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                               </div>
                             )}
                             {columnTasks.map((t, idx) => {
-                              const subs = Object.values(tasks).flat().filter((st) => st.parentTaskId === t.taskId);
+                              const subs = allSubtasks.filter((st) => st.parentTaskId === t.taskId);
                               const doneCol = (columns.find(col=>col.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId;
                               const doneCount = subs.filter((s) => s.columnId === doneCol).length;
                               const hasSubtasks = subs.length > 0;
@@ -601,25 +620,44 @@ export default function BoardClient({ boardId }: { boardId: string }) {
           projectId={project.projectId}
           doneColumnId={(columns.find(c=>c.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId || ''}
           members={memberProfiles}
-          subtasks={modalTask ? Object.values(tasks).flat().filter((t)=>t.parentTaskId===modalTask.taskId) : []}
+          subtasks={subtasks}
           currentUserId={user.uid}
           ownerId={project.ownerId}
           onCreateSubtask={async (title)=>{
-            if (!modalTask) return;
+            if (!modalTask) {
+              addToast({ title: 'Cannot add subtask: Task not found', kind: 'error' });
+              return;
+            }
             const col = columns[0]?.columnId;
-            if(!col) return;
-            await createTask(project.projectId, col, title, { parentTaskId: modalTask.taskId });
+            if(!col) {
+              addToast({ title: 'Cannot add subtask: No column found', kind: 'error' });
+              return;
+            }
+            try {
+              await createTask(project.projectId, col, title, { parentTaskId: modalTask.taskId });
+              addToast({ title: 'Subtask created', kind: 'success' });
+            } catch (e: unknown) {
+              addToast({ title: (e as Error)?.message || 'Failed to create subtask', kind: 'error' });
+            }
           }}
           onToggleSubtask={async (sub, done)=>{
             const doneCol = (columns.find(c=>c.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId || columns[0]?.columnId;
             const firstCol = columns[0]?.columnId;
             const col = done ? doneCol : firstCol;
             if (!col) return;
-            await updateTask(project.projectId, sub.taskId, { columnId: col });
+            try {
+              await updateTask(project.projectId, sub.taskId, { columnId: col });
+            } catch (e: unknown) {
+              addToast({ title: (e as Error)?.message || 'Failed to toggle subtask', kind: 'error' });
+            }
           }}
           onEditSubtask={async (sub, newTitle) => {
-            await updateTask(project.projectId, sub.taskId, { title: newTitle });
-            addToast({ title: 'Subtask updated', kind: 'success' });
+            try {
+              await updateTask(project.projectId, sub.taskId, { title: newTitle });
+              addToast({ title: 'Subtask updated', kind: 'success' });
+            } catch (e: unknown) {
+              addToast({ title: (e as Error)?.message || 'Failed to update subtask', kind: 'error' });
+            }
           }}
           onDeleteSubtask={async (sub) => {
             const confirmed = await confirm({
@@ -629,8 +667,12 @@ export default function BoardClient({ boardId }: { boardId: string }) {
               danger: true,
             });
             if (!confirmed) return;
-            await deleteTask(project.projectId, sub.taskId);
-            addToast({ title: 'Subtask deleted', kind: 'success' });
+            try {
+              await deleteTask(project.projectId, sub.taskId);
+              addToast({ title: 'Subtask deleted', kind: 'success' });
+            } catch (e: unknown) {
+              addToast({ title: (e as Error)?.message || 'Failed to delete subtask', kind: 'error' });
+            }
           }}
           onSave={async (data) => {
             if (modalMode === 'create') {
