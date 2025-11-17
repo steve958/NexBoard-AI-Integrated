@@ -171,23 +171,47 @@ export default function MyTasksPage() {
                       <Link
                         key={task.taskId}
                         href={`/boards/${projectId}?task=${task.taskId}`}
-                        className="block nb-card rounded-lg p-4 hover:bg-white/5 transition-colors border border-white/10"
+                        className="block nb-card rounded-xl p-5 group"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-medium truncate">{task.title}</h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold truncate">{task.title}</h3>
                               {task.columnName && (
-                                <span className="px-2 py-0.5 text-xs rounded nb-chip-teal flex-shrink-0">
+                                <span className="px-2.5 py-1 text-xs rounded-full nb-chip-teal flex-shrink-0 font-medium">
                                   {task.columnName}
+                                </span>
+                              )}
+                              {task.priority && (
+                                <span
+                                  className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex-shrink-0"
+                                  style={{
+                                    backgroundColor: task.priority === 'urgent' ? 'var(--nb-coral)' :
+                                      task.priority === 'high' ? 'color-mix(in srgb, var(--nb-coral) 60%, var(--nb-accent))' :
+                                      task.priority === 'medium' ? 'var(--nb-accent)' :
+                                      'color-mix(in srgb, var(--nb-ink) 20%, transparent)',
+                                    color: task.priority === 'low' ? 'var(--nb-ink)' : '#1d1d1d'
+                                  }}
+                                >
+                                  {task.priority}
                                 </span>
                               )}
                             </div>
                             {task.description && (
-                              <p className="text-sm opacity-70 line-clamp-2">{task.description}</p>
+                              <p className="text-sm opacity-60 line-clamp-2 leading-relaxed">{task.description}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            {task.estimation && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-accent) 15%, transparent)' }}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-accent)' }}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-xs font-bold" style={{ color: 'var(--nb-accent)' }}>
+                                  {task.estimation}h
+                                </span>
+                              </div>
+                            )}
                             {assignee && (
                               <Avatar uid={assignee.uid} name={assignee.name} email={assignee.email} />
                             )}

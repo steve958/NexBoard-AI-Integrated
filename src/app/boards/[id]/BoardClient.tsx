@@ -9,12 +9,14 @@ import { registerCommands } from "@/lib/commands";
 import Avatar from "@/components/Avatar";
 import DueChip from "@/components/DueChip";
 import type { Task } from "@/lib/taskTypes";
+import type { TaskProject } from "@/lib/taskProjectTypes";
+import { listenUserTaskProjects } from "@/lib/taskProjects";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { listenTasksByColumn, createTask, updateTask, computeNewOrder, deleteTask, deleteTaskWithOrphans } from "@/lib/tasks";
-import Modal from "@/components/Modal";
-import TaskEditor from "@/components/TaskEditor";
+import TaskModal from "@/components/TaskModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/ToastProvider";
+import { useDialog } from "@/components/DialogProvider";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { canEditTasks } from "@/lib/roles";
@@ -26,16 +28,25 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   const [columns, setColumns] = useState<Column[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
-  const [newTitle, setNewTitle] = useState<Record<string, string>>({});
-  const [editing, setEditing] = useState<Task | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [modalTask, setModalTask] = useState<Task | null>(null);
+  const [modalColumnId, setModalColumnId] = useState<string | null>(null);
   const [memberProfiles, setMemberProfiles] = useState<UserProfile[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const inputRefs = useRef(new Map<string, HTMLInputElement | null>());
+  const [userProjects, setUserProjects] = useState<TaskProject[]>([]);
   const tasksUnsubsRef = useRef<(() => void)[]>([]);
   const { addToast } = useToast();
-  const [colErrors, setColErrors] = useState<Record<string, string | undefined>>({});
+  const { confirm } = useDialog();
   const searchParams = useSearchParams();
   const [gPressed, setGPressed] = useState(false);
+
+  // Listen to user's task projects
+  useEffect(() => {
+    if (!user) return;
+    const unsub = listenUserTaskProjects(user.uid, setUserProjects);
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -73,10 +84,9 @@ export default function BoardClient({ boardId }: { boardId: string }) {
     if (!project) return;
     const firstCol = columns[0]?.columnId;
     const unregister = registerCommands([
-      { id: `boards:${project.projectId}:new-in-first`, title: `New task in "${columns[0]?.name || 'First column'}"`, group: 'Board', run: async () => { const title = prompt('Task title'); if (!title || !firstCol) return; await createTask(project.projectId, firstCol, title); } },
-      { id: `boards:${project.projectId}:focus-quick-add`, title: 'Focus quick add', group: 'Board', shortcut: 'N', run: () => { if (firstCol) inputRefs.current.get(firstCol)?.focus(); } },
+      { id: `boards:${project.projectId}:new-in-first`, title: `New task in "${columns[0]?.name || 'First column'}"`, group: 'Board', shortcut: 'N', run: () => { if (!firstCol) return; setModalMode('create'); setModalColumnId(firstCol); setModalTask(null); setModalOpen(true); } },
       { id: `boards:${project.projectId}:open-boards`, title: 'Open Boards list', group: 'Navigation', shortcut: 'G B', run: () => { window.location.href = '/boards'; } },
-      { id: `boards:${project.projectId}:edit-selected`, title: 'Edit selected task', group: 'Task', shortcut: 'E', run: () => { const task = Object.values(tasks).flat().find(t => t.taskId === selectedTaskId); if (task) setEditing(task); } },
+      { id: `boards:${project.projectId}:edit-selected`, title: 'Edit selected task', group: 'Task', shortcut: 'E', run: () => { const task = Object.values(tasks).flat().find(t => t.taskId === selectedTaskId); if (task) { setModalMode('edit'); setModalTask(task); setModalOpen(true); } } },
       { id: `boards:${project.projectId}:new-subtask`, title: 'Add subtask to selected', group: 'Task', run: async () => { const parent = Object.values(tasks).flat().find(t => t.taskId === selectedTaskId); const firstCol = columns[0]?.columnId; if (!parent || !firstCol) return; const title = prompt('Subtask title'); if (!title) return; await createTask(project.projectId, firstCol, title, { parentTaskId: parent.taskId }); } },
       { id: 'global:help', title: 'Show keyboard shortcuts', group: 'Help', shortcut: '?', run: () => { /* Handled by HelpOverlay */ } },
     ]);
@@ -138,20 +148,35 @@ export default function BoardClient({ boardId }: { boardId: string }) {
       
       if (key === 'n') {
         const first = columns[0]?.columnId;
-        if (first) inputRefs.current.get(first)?.focus();
+        if (first) {
+          setModalMode('create');
+          setModalColumnId(first);
+          setModalTask(null);
+          setModalOpen(true);
+        }
       } else if ((key === 'e' || key === 'enter') && selectedTaskId && project) {
         const task = Object.values(tasks).flat().find(t => t.taskId === selectedTaskId);
-        if (task) setEditing(task);
+        if (task) {
+          setModalMode('edit');
+          setModalTask(task);
+          setModalOpen(true);
+        }
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTaskId && project) {
         const task = Object.values(tasks).flat().find(t => t.taskId === selectedTaskId);
         if (!task) return;
         const subs = Object.values(tasks).flat().filter((st) => st.parentTaskId === task.taskId);
-        const msg = subs.length > 0 ? `Delete "${task.title}"?\n\n${subs.length} subtask(s) will be moved to Backlog.` : `Delete "${task.title}"?`;
-        if (!confirm(msg)) return;
-        const backlogCol = columns.find(c => c.name.toLowerCase().includes('backlog'))?.columnId || columns[0]?.columnId || '';
-        const deletePromise = subs.length > 0 ? deleteTaskWithOrphans(project.projectId, selectedTaskId, backlogCol) : deleteTask(project.projectId, selectedTaskId);
-        deletePromise.then(()=>addToast({ title: 'Task deleted', kind: 'success'})).catch(()=>addToast({ title: 'Delete failed', kind: 'error'}));
-        setSelectedTaskId(null);
+        const title = subs.length > 0 ? 'Delete task with subtasks?' : 'Delete task?';
+        const message = subs.length > 0
+          ? `Are you sure you want to delete "${task.title}"?\n\n${subs.length} subtask(s) will be moved to the Backlog column.`
+          : `Are you sure you want to delete "${task.title}"?`;
+
+        confirm({ title, message, confirmText: 'Delete', danger: true }).then((confirmed) => {
+          if (!confirmed) return;
+          const backlogCol = columns.find(c => c.name.toLowerCase().includes('backlog'))?.columnId || columns[0]?.columnId || '';
+          const deletePromise = subs.length > 0 ? deleteTaskWithOrphans(project.projectId, selectedTaskId, backlogCol) : deleteTask(project.projectId, selectedTaskId);
+          deletePromise.then(()=>addToast({ title: 'Task deleted', kind: 'success'})).catch(()=>addToast({ title: 'Delete failed', kind: 'error'}));
+          setSelectedTaskId(null);
+        });
       } else if (key === 'arrowdown' || key === 'arrowup') {
         const cols = (columns || []).map(c => c.columnId);
         if (!cols.length) return;
@@ -205,9 +230,24 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   return (
     <ErrorBoundary>
       {!user ? null : error ? (
-        <main className="p-6 text-red-600">{error}</main>
+        <main className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-lg font-semibold" style={{ color: 'var(--nb-coral)' }}>{error}</div>
+          </div>
+        </main>
       ) : !project ? (
-        <main className="p-6">Loading…</main>
+        <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--nb-bg)' }}>
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--nb-teal), var(--nb-accent))' }}>
+              <svg className="w-8 h-8 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <div className="text-lg font-semibold mb-2" style={{ color: 'var(--nb-ink)' }}>Loading board...</div>
+            <div className="text-sm" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Please wait</div>
+          </div>
+        </main>
       ) : (
         <main className="min-h-screen" style={{ backgroundColor: 'var(--nb-bg)' }}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -223,14 +263,6 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                       </svg>
                       <span className="text-sm font-bold" style={{ color: 'var(--nb-teal)' }}>
                         {allTasks.length} {allTasks.length === 1 ? 'task' : 'tasks'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-accent) 10%, transparent)' }}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-accent)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                      </svg>
-                      <span className="text-sm font-bold" style={{ color: 'var(--nb-accent)' }}>
-                        {columns.length} {columns.length === 1 ? 'column' : 'columns'}
                       </span>
                     </div>
                   </div>
@@ -302,84 +334,40 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                     >
                       {/* Column Header */}
                       <div className="p-6 pb-4 border-b" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-1 h-6 rounded-full" style={{ backgroundColor: 'var(--nb-teal)' }}></div>
-                                <h2 className="font-bold text-lg tracking-tight" style={{ color: 'var(--nb-ink)' }}>{c.name}</h2>
-                                <span
-                                  className="px-2.5 py-1 rounded-full text-xs font-bold"
-                                  style={{
-                                    backgroundColor: 'color-mix(in srgb, var(--nb-teal) 20%, transparent)',
-                                    color: 'var(--nb-teal)'
-                                  }}
-                                >
-                                  {columnTasks.length}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Quick Add Input */}
-                            {userCanEdit && (
-                              <div className="flex gap-2.5">
-                                <input
-                                  ref={(el) => { inputRefs.current.set(c.columnId, el); }}
-                                  value={newTitle[c.columnId] || ""}
-                                  onChange={(e) => setNewTitle({ ...newTitle, [c.columnId]: e.target.value })}
-                                  onKeyDown={async (e) => {
-                                    if (e.key === 'Enter') {
-                                      const title = (newTitle[c.columnId] || "").trim();
-                                      if (!title || !project) return;
-                                      try {
-                                        await createTask(project.projectId, c.columnId, title);
-                                        setNewTitle({ ...newTitle, [c.columnId]: "" });
-                                        setColErrors((e)=>({ ...e, [c.columnId]: undefined }));
-                                        addToast({ title: 'Task created', kind: 'success' });
-                                      } catch (e: unknown) {
-                                        const msg = (e as Error)?.message || 'Create failed';
-                                        setColErrors((prev)=>({ ...prev, [c.columnId]: msg }));
-                                        addToast({ title: msg, kind: 'error' });
-                                      }
-                                    }
-                                  }}
-                                  placeholder="Add a task..."
-                                  className="flex-1 h-10 px-4 rounded-lg bg-transparent text-sm font-medium focus:outline-none focus:ring-2 transition-all placeholder:text-sm"
-                                  style={{
-                                    border: '2px solid color-mix(in srgb, var(--nb-ink) 12%, transparent)',
-                                    color: 'var(--nb-ink)',
-                                    caretColor: 'var(--nb-teal)',
-                                    '--tw-ring-color': 'var(--nb-teal)'
-                                  } as React.CSSProperties}
-                                />
-                                <button
-                                  onClick={async () => {
-                                    const title = (newTitle[c.columnId] || "").trim();
-                                    if (!title || !project) return;
-                                    try {
-                                      await createTask(project.projectId, c.columnId, title);
-                                      setNewTitle({ ...newTitle, [c.columnId]: "" });
-                                      setColErrors((e)=>({ ...e, [c.columnId]: undefined }));
-                                      addToast({ title: 'Task created', kind: 'success' });
-                                    } catch (e: unknown) {
-                                      const msg = (e as Error)?.message || 'Create failed';
-                                      setColErrors((prev)=>({ ...prev, [c.columnId]: msg }));
-                                      addToast({ title: msg, kind: 'error' });
-                                    }
-                                  }}
-                                  className="h-10 w-10 rounded-lg nb-btn-primary flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg"
-                                  title="Add task"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                  </svg>
-                                </button>
-                              </div>
-                            )}
-                            {colErrors[c.columnId] && (
-                              <div className="text-xs mt-2 px-2 py-1 rounded" style={{ color: 'var(--nb-coral)', backgroundColor: 'color-mix(in srgb, var(--nb-coral) 10%, transparent)' }}>
-                                {colErrors[c.columnId]}
-                              </div>
-                            )}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1 h-6 rounded-full" style={{ backgroundColor: 'var(--nb-teal)' }}></div>
+                            <h2 className="font-bold text-lg tracking-tight" style={{ color: 'var(--nb-ink)' }}>{c.name}</h2>
+                            <span
+                              className="px-2.5 py-1 rounded-full text-xs font-bold"
+                              style={{
+                                backgroundColor: 'color-mix(in srgb, var(--nb-teal) 20%, transparent)',
+                                color: 'var(--nb-teal)'
+                              }}
+                            >
+                              {columnTasks.length}
+                            </span>
                           </div>
+                        </div>
+
+                        {/* Add Task Button */}
+                        {userCanEdit && (
+                          <button
+                            onClick={() => {
+                              setModalMode('create');
+                              setModalColumnId(c.columnId);
+                              setModalTask(null);
+                              setModalOpen(true);
+                            }}
+                            className="w-full h-10 rounded-lg nb-btn-primary flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Task
+                          </button>
+                        )}
+                      </div>
 
                           {/* Tasks List */}
                           <Droppable droppableId={c.columnId}>
@@ -428,7 +416,12 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                       ref={prov.innerRef}
                                       {...prov.draggableProps}
                                       {...prov.dragHandleProps}
-                                      onClick={() => setSelectedTaskId(t.taskId)}
+                                      onClick={() => {
+                                        setSelectedTaskId(t.taskId);
+                                        setModalMode('edit');
+                                        setModalTask(t);
+                                        setModalOpen(true);
+                                      }}
                                       className="w-full rounded-xl p-4 group relative mb-3"
                                       style={{
                                         backgroundColor: 'var(--nb-card)',
@@ -462,7 +455,23 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                         <h3 className="flex-1 text-base font-bold leading-snug tracking-tight" style={{ color: 'var(--nb-ink)' }}>
                                           {t.title}
                                         </h3>
-                                        <DueChip due={t.dueDate} />
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                          {t.priority && (
+                                            <span
+                                              className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                                              style={{
+                                                backgroundColor: t.priority === 'urgent' ? 'var(--nb-coral)' :
+                                                  t.priority === 'high' ? 'color-mix(in srgb, var(--nb-coral) 60%, var(--nb-accent))' :
+                                                  t.priority === 'medium' ? 'var(--nb-accent)' :
+                                                  'color-mix(in srgb, var(--nb-ink) 20%, transparent)',
+                                                color: t.priority === 'low' ? 'var(--nb-ink)' : '#1d1d1d'
+                                              }}
+                                            >
+                                              {t.priority}
+                                            </span>
+                                          )}
+                                          <DueChip due={t.dueDate} />
+                                        </div>
                                       </div>
 
                                       {/* Description */}
@@ -471,6 +480,21 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                           {t.description}
                                         </p>
                                       )}
+
+                                      {/* Project Badge */}
+                                      {t.projectId && (() => {
+                                        const taskProject = userProjects.find(p => p.projectId === t.projectId);
+                                        return taskProject ? (
+                                          <div className="mb-3">
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: `${taskProject.color}20` }}>
+                                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: taskProject.color || '#2ea7a0' }}></div>
+                                              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: taskProject.color || '#2ea7a0' }}>
+                                                {taskProject.name}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ) : null;
+                                      })()}
 
                                       {/* Subtasks Progress */}
                                       {hasSubtasks && (
@@ -498,18 +522,32 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                         </div>
                                       )}
 
-                                      {/* Footer - Assignee */}
-                                      {t.assigneeId && (
+                                      {/* Footer - Assignee & Estimation */}
+                                      {(t.assigneeId || t.estimation) && (
                                         <div className="flex items-center gap-2.5 pt-3 mt-3 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
-                                          <Avatar uid={t.assigneeId} name={assignee?.name} email={assignee?.email} size={28} />
-                                          <div className="flex-1">
-                                            <span className="text-xs font-bold block" style={{ color: 'var(--nb-ink)' }}>
-                                              {assignee?.name || assignee?.email || 'Assignee'}
-                                            </span>
-                                            <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 50%, transparent)' }}>
-                                              Assigned
-                                            </span>
-                                          </div>
+                                          {t.assigneeId && (
+                                            <>
+                                              <Avatar uid={t.assigneeId} name={assignee?.name} email={assignee?.email} size={28} />
+                                              <div className="flex-1">
+                                                <span className="text-xs font-bold block" style={{ color: 'var(--nb-ink)' }}>
+                                                  {assignee?.name || assignee?.email || 'Assignee'}
+                                                </span>
+                                                <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 50%, transparent)' }}>
+                                                  Assigned
+                                                </span>
+                                              </div>
+                                            </>
+                                          )}
+                                          {t.estimation && (
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-accent) 15%, transparent)' }}>
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--nb-accent)' }}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                              <span className="text-xs font-bold" style={{ color: 'var(--nb-accent)' }}>
+                                                {t.estimation}h
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
 
@@ -549,56 +587,92 @@ export default function BoardClient({ boardId }: { boardId: string }) {
           </div>
         </main>
       )}
-      <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Task">
-        {editing && (
-          <TaskEditor
-            task={editing}
-            members={memberProfiles}
-            projectId={project!.projectId}
-            doneColumnId={(columns.find(c=>c.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId || ''}
-            subtasks={Object.values(tasks).flat().filter((t)=>t.parentTaskId===editing.taskId)}
-            currentUserId={user!.uid}
-            ownerId={project!.ownerId}
-            onCreateSubtask={async (title)=>{
-              const col = columns[0]?.columnId; if(!col) return;
-              await createTask(project!.projectId, col, title, { parentTaskId: editing.taskId });
-            }}
-            onToggleSubtask={async (sub, done)=>{
-              const doneCol = (columns.find(c=>c.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId || columns[0]?.columnId;
-              const firstCol = columns[0]?.columnId;
-              const col = done ? doneCol : firstCol;
-              if (!col) return;
-              await updateTask(project!.projectId, sub.taskId, { columnId: col });
-            }}
-            onClose={() => setEditing(null)}
-            onSave={async (data) => {
-              const projectId = project!.projectId;
-              const taskId = editing.taskId;
-              const oldTask = editing;
+      {modalOpen && project && user && (
+        <TaskModal
+          open={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setModalTask(null);
+            setModalColumnId(null);
+          }}
+          mode={modalMode}
+          task={modalTask || undefined}
+          columnId={modalColumnId || undefined}
+          projectId={project.projectId}
+          doneColumnId={(columns.find(c=>c.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId || ''}
+          members={memberProfiles}
+          subtasks={modalTask ? Object.values(tasks).flat().filter((t)=>t.parentTaskId===modalTask.taskId) : []}
+          currentUserId={user.uid}
+          ownerId={project.ownerId}
+          onCreateSubtask={async (title)=>{
+            if (!modalTask) return;
+            const col = columns[0]?.columnId;
+            if(!col) return;
+            await createTask(project.projectId, col, title, { parentTaskId: modalTask.taskId });
+          }}
+          onToggleSubtask={async (sub, done)=>{
+            const doneCol = (columns.find(c=>c.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId || columns[0]?.columnId;
+            const firstCol = columns[0]?.columnId;
+            const col = done ? doneCol : firstCol;
+            if (!col) return;
+            await updateTask(project.projectId, sub.taskId, { columnId: col });
+          }}
+          onSave={async (data) => {
+            if (modalMode === 'create') {
+              // Create new task
+              if (!modalColumnId) return;
+              try {
+                await createTask(project.projectId, modalColumnId, data.title || 'Untitled', {
+                  description: data.description,
+                  assigneeId: data.assigneeId,
+                  estimation: data.estimation,
+                  priority: data.priority,
+                  dueDate: data.dueDate,
+                });
+                addToast({ title: 'Task created', kind: 'success' });
+
+                // Notify assignee if assigned
+                if (data.assigneeId && data.assigneeId !== user.uid) {
+                  const { addNotification } = await import("@/lib/notifications");
+                  await addNotification(project.projectId, {
+                    userId: data.assigneeId,
+                    taskId: '', // We don't have the ID yet, but notification system should handle this
+                    type: "assignment",
+                    title: "You were assigned to a task",
+                    text: data.title || 'Untitled',
+                  }).catch(() => {}); // Silent fail
+                }
+              } catch (e: unknown) {
+                addToast({ title: (e as Error)?.message || 'Create failed', kind: 'error' });
+                throw e; // Re-throw to prevent modal from closing
+              }
+            } else {
+              // Update existing task
+              if (!modalTask) return;
+              const oldTask = modalTask;
 
               // Check for assignment change
-              if (data.assigneeId && data.assigneeId !== oldTask.assigneeId && data.assigneeId !== user!.uid) {
+              if (data.assigneeId && data.assigneeId !== oldTask.assigneeId && data.assigneeId !== user.uid) {
                 const { addNotification } = await import("@/lib/notifications");
-                const assigneeName = memberProfiles.find(m => m.uid === data.assigneeId)?.name || 'Someone';
-                await addNotification(projectId, {
+                await addNotification(project.projectId, {
                   userId: data.assigneeId,
-                  taskId,
+                  taskId: oldTask.taskId,
                   type: "assignment",
                   title: "You were assigned to a task",
                   text: oldTask.title,
-                });
+                }).catch(() => {}); // Silent fail
               }
 
-              await updateTask(projectId, taskId, data);
-            }}
-            onDelete={async () => {
-              // Find Backlog column or use first column as fallback
-              const backlogCol = columns.find(c => c.name.toLowerCase().includes('backlog'))?.columnId || columns[0]?.columnId || '';
-              await deleteTaskWithOrphans(project!.projectId, editing.taskId, backlogCol);
-            }}
-          />
-        )}
-      </Modal>
+              await updateTask(project.projectId, oldTask.taskId, data);
+            }
+          }}
+          onDelete={async () => {
+            if (!modalTask) return;
+            const backlogCol = columns.find(c => c.name.toLowerCase().includes('backlog'))?.columnId || columns[0]?.columnId || '';
+            await deleteTaskWithOrphans(project.projectId, modalTask.taskId, backlogCol);
+          }}
+        />
+      )}
     </ErrorBoundary>
   );
 }

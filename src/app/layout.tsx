@@ -9,6 +9,7 @@ import CommandPalette from "@/components/CommandPalette";
 import ToastProvider from "@/components/ToastProvider";
 import HelpOverlay from "@/components/HelpOverlay";
 import ThemeProvider from "@/components/ThemeProvider";
+import { DialogProvider } from "@/components/DialogProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? "NexBoard",
-  description: "NexBoard",
+  description: "NexBoard - Collaborative Kanban Board Application",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -33,6 +37,9 @@ export default function RootLayout({
   const GA_ID = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -73,10 +80,12 @@ export default function RootLayout({
           <AuthProvider>
             <Protected>
               <ToastProvider>
-                <Header />
-                {children}
-                <CommandPalette />
-                <HelpOverlay />
+                <DialogProvider>
+                  <Header />
+                  {children}
+                  <CommandPalette />
+                  <HelpOverlay />
+                </DialogProvider>
               </ToastProvider>
             </Protected>
           </AuthProvider>
