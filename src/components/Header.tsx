@@ -17,6 +17,11 @@ export default function Header() {
   const { addToast } = useToast();
   const previousNotifsRef = useRef<Notification[]>([]);
 
+  // Hide header on login page
+  if (pathname === "/login") {
+    return null;
+  }
+
   useEffect(() => {
     // Derive projectId from URL when on /boards/[id]
     if (!pathname) return;
@@ -69,6 +74,7 @@ export default function Header() {
         </Link>
         <nav className="flex items-center gap-3 text-sm relative">
           {user && <Link href="/boards" className="hover:underline">Boards</Link>}
+          {user && <Link href="/my-projects" className="hover:underline">My Projects</Link>}
           {user && <Link href="/my-tasks" className="hover:underline">My Tasks</Link>}
           {user && <Link href="/settings" className="hover:underline">Settings</Link>}
           <ThemeToggle />
@@ -110,7 +116,6 @@ export default function Header() {
               )}
             </div>
           )}
-          <span className="opacity-60 text-xs hidden sm:inline">Ctrl+K</span>
           {user ? (
             <button onClick={signOutUser} className="h-9 px-3 rounded-md nb-btn-secondary hover:bg-white/5">Sign out</button>
           ) : (

@@ -10,10 +10,23 @@ export default function Modal({ open, onClose, title, children }: { open: boolea
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl nb-card p-4">
-        {title && <h2 className="text-lg font-semibold mb-2">{title}</h2>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
+        style={{
+          backgroundColor: 'var(--nb-bg)',
+          border: '2px solid color-mix(in srgb, var(--nb-ink) 15%, transparent)',
+          padding: '2rem'
+        }}
+      >
+        {title && (
+          <div className="mb-6 pb-4 border-b" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
+            <h2 className="text-2xl font-black tracking-tight" style={{ color: 'var(--nb-ink)' }}>
+              {title}
+            </h2>
+          </div>
+        )}
         {children}
       </div>
     </div>

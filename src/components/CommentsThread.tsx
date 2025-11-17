@@ -92,7 +92,7 @@ export default function CommentsThread({
 
   return (
     <div className="mt-4 space-y-2">
-      <div className="nb-card rounded-md p-2">
+      <div className="nb-card rounded-lg p-3">
         <div className="relative">
           <textarea
             ref={taRef}

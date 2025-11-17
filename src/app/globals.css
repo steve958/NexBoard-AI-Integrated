@@ -40,9 +40,51 @@ body {
 }
 
 /* Brand utility classes */
-.nb-card { background-color: var(--nb-card); border: 1px solid color-mix(in srgb, var(--nb-ink) 12%, transparent); }
-.nb-surface { background-color: color-mix(in srgb, var(--nb-card) 70%, transparent); backdrop-filter: blur(8px); border: 1px solid color-mix(in srgb, var(--nb-ink) 10%, transparent); }
-.nb-shadow { box-shadow: 0 10px 25px rgb(0 0 0 / 0.25); }
+.nb-card {
+  background-color: var(--nb-card);
+  border: 1px solid color-mix(in srgb, var(--nb-ink) 6%, transparent);
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.05),
+    0 1px 3px 0 rgb(0 0 0 / 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nb-card:hover {
+  border-color: color-mix(in srgb, var(--nb-ink) 10%, transparent);
+  box-shadow:
+    0 2px 4px 0 rgb(0 0 0 / 0.06),
+    0 4px 8px 0 rgb(0 0 0 / 0.05);
+  transform: translateY(-1px);
+}
+
+.nb-card-elevated {
+  background-color: var(--nb-card);
+  border: 1px solid color-mix(in srgb, var(--nb-ink) 8%, transparent);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.08),
+    0 2px 4px -2px rgb(0 0 0 / 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nb-card-elevated:hover {
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.08);
+  transform: translateY(-2px);
+}
+
+.nb-surface {
+  background-color: color-mix(in srgb, var(--nb-card) 70%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--nb-ink) 8%, transparent);
+}
+
+.nb-shadow {
+  box-shadow:
+    0 10px 20px rgb(0 0 0 / 0.12),
+    0 6px 12px rgb(0 0 0 / 0.08);
+}
+
 .nb-btn-primary { background-color: var(--nb-accent); color: #1d1d1d; }
 .nb-btn-primary:hover { filter: brightness(0.95); }
 .nb-btn-secondary { border: 1px solid color-mix(in srgb, var(--nb-ink) 20%, transparent); }
@@ -50,3 +92,40 @@ body {
 .nb-chip-teal { background-color: color-mix(in srgb, var(--nb-teal) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-coral { background-color: color-mix(in srgb, var(--nb-coral) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-amber { background-color: color-mix(in srgb, var(--nb-accent) 20%, transparent); color: #1d1d1d; }
+
+/* Form inputs and selects - theme aware */
+select option {
+  background-color: var(--nb-card);
+  color: var(--nb-ink);
+}
+
+/* Date input calendar - theme aware */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
+}
+
+:root[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+}
+
+/* Number input spinner - theme aware */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.7;
+}
+
+/* Placeholder text - theme aware */
+::placeholder {
+  color: color-mix(in srgb, var(--nb-ink) 40%, transparent);
+  opacity: 1;
+}
+
+/* Focus ring for inputs */
+input:focus,
+textarea:focus,
+select:focus {
+  --tw-ring-color: var(--nb-teal);
+  outline: none;
+  border-color: var(--nb-teal);
+}
