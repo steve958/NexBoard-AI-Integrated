@@ -14,14 +14,19 @@ export default function LoginPage() {
         <div className="max-w-lg w-full text-center lg:text-left">
           {/* Logo */}
           <div className="mb-8 flex items-center justify-center">
-            <Image
-              src="/logo.png"
-              alt="NexBoard Logo"
-              width={256}
-              height={256}
-              priority
-              className="h-64 w-64 lg:h-72 lg:w-72"
-            />
+            <div
+              className="p-5 rounded-[20px]"
+              style={{ backgroundColor: '#FAFAFA' }}
+            >
+              <Image
+                src="/logo.png"
+                alt="NexBoard Logo"
+                width={256}
+                height={256}
+                priority
+                className="h-64 w-64 lg:h-72 lg:w-72"
+              />
+            </div>
           </div>
 
           {/* App name and description */}
