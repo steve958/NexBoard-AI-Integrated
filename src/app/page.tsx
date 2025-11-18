@@ -84,7 +84,11 @@ export default function HomePage() {
   // Calculate analytics
   const analytics = useMemo(() => {
     const totalBoards = projects.length;
-    const totalTasks = allTasks.reduce((sum, p) => sum + p.tasks.length, 0);
+    // Count only parent tasks (exclude subtasks)
+    const totalTasks = allTasks.reduce((sum, p) => {
+      const parentTasks = p.tasks.filter(t => !t.parentTaskId);
+      return sum + parentTasks.length;
+    }, 0);
     const myTasks = allTasks.flatMap((p) =>
       p.tasks.filter((t) => t.assigneeId === user?.uid).map((t) => ({ ...t, projectName: p.projectName, projectId: p.projectId }))
     );
