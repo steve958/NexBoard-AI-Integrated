@@ -360,10 +360,11 @@ export default function TaskEditor({
               doneColumnId={doneColumnId}
             />
           </div>
-          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
+          {/* Comments section disabled - not yet implemented */}
+          {/* <div className="mt-6 pt-6 border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
             <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--nb-ink)' }}>Comments</label>
             <CommentsThread projectId={projectId} taskId={task.taskId} currentUserId={currentUserId} ownerId={ownerId} members={members} taskAssigneeId={assigneeId} taskTitle={title} />
-          </div>
+          </div> */}
         </>
       )}
       <div className="mt-6 pt-4 flex items-center justify-between border-t" style={{ borderColor: 'color-mix(in srgb, var(--nb-ink) 12%, transparent)' }}>
