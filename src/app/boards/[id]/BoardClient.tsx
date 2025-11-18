@@ -450,7 +450,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                         opacity: dragSnapshot.isDragging ? 0.95 : 1,
                                         border: selectedTaskId === t.taskId
                                           ? '2px solid var(--nb-ring)'
-                                          : '1px solid color-mix(in srgb, var(--nb-ink) 10%, transparent)',
+                                          : '2px solid color-mix(in srgb, var(--nb-ink) 18%, transparent)',
                                         cursor: userCanEdit ? (dragSnapshot.isDragging ? 'grabbing' : 'grab') : 'pointer',
                                         transition: 'none',
                                         ...prov.draggableProps.style,
