@@ -3,15 +3,16 @@ import { useAuth } from "@/lib/auth";
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { listenProjectsForUser, createProject } from "@/lib/projects";
-import type { Project } from "@/lib/types";
+import type { Project, Column } from "@/lib/types";
 import type { Task } from "@/lib/taskTypes";
-import { collection, query, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, onSnapshot, Timestamp, orderBy } from "firebase/firestore";
 import { getDbClient } from "@/lib/firebase";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [allTasks, setAllTasks] = useState<{ projectId: string; projectName: string; tasks: Task[] }[]>([]);
+  const [projectColumns, setProjectColumns] = useState<{ projectId: string; columns: Column[] }[]>([]);
   const [newBoardName, setNewBoardName] = useState("");
   const [creatingBoard, setCreatingBoard] = useState(false);
 
@@ -21,6 +22,35 @@ export default function HomePage() {
     const unsub = listenProjectsForUser(user.uid, setProjects);
     return () => unsub();
   }, [user]);
+
+  // Listen to columns from all projects
+  useEffect(() => {
+    if (!user || projects.length === 0) {
+      setProjectColumns([]);
+      return;
+    }
+
+    const unsubscribers: (() => void)[] = [];
+    const db = getDbClient();
+
+    projects.forEach((project) => {
+      const q = query(collection(db, `projects/${project.projectId}/columns`), orderBy("order"));
+      const unsub = onSnapshot(q, (snapshot) => {
+        const columns = snapshot.docs.map((doc) => ({
+          columnId: doc.id,
+          ...doc.data(),
+        })) as Column[];
+
+        setProjectColumns((prev) => {
+          const filtered = prev.filter((p) => p.projectId !== project.projectId);
+          return [...filtered, { projectId: project.projectId, columns }];
+        });
+      });
+      unsubscribers.push(unsub);
+    });
+
+    return () => unsubscribers.forEach((unsub) => unsub());
+  }, [user, projects]);
 
   // Listen to tasks from all projects
   useEffect(() => {
@@ -63,7 +93,21 @@ export default function HomePage() {
     const overdueTasks = myTasks.filter((t) => {
       if (!t.dueDate) return false;
       const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate).getTime();
-      return due < now;
+      if (due >= now) return false; // Not overdue
+
+      // Exclude tasks from DONE columns
+      const projectCols = projectColumns.find((pc) => pc.projectId === t.projectId);
+      if (!projectCols) return true; // If no columns info, include task
+
+      // Find DONE column (column with name containing "done")
+      const doneColumn = projectCols.columns.find((col) =>
+        col.name.toLowerCase().includes('done')
+      );
+
+      // Exclude task if it's in the DONE column
+      if (doneColumn && t.columnId === doneColumn.columnId) return false;
+
+      return true; // Task is overdue and not in DONE column
     });
 
     // Recent tasks (created in last 7 days)
@@ -97,7 +141,7 @@ export default function HomePage() {
       recentTasks,
       myTasks: myTasks.slice(0, 5),
     };
-  }, [projects, allTasks, user]);
+  }, [projects, allTasks, projectColumns, user]);
 
   const handleCreateBoard = async () => {
     if (!user || !newBoardName.trim()) return;
