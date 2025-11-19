@@ -12,7 +12,7 @@ import type { Task } from "@/lib/taskTypes";
 import type { TaskProject } from "@/lib/taskProjectTypes";
 import { listenUserTaskProjects } from "@/lib/taskProjects";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { listenTasksByColumn, listenAllSubtasks, createTask, updateTask, computeNewOrder, deleteTask, deleteTaskWithOrphans } from "@/lib/tasks";
+import { listenTasksByColumn, listenAllSubtasks, createTask, updateTask, deleteTask, deleteTaskWithOrphans, computeNewOrder } from "@/lib/tasks";
 import TaskModal from "@/components/TaskModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/ToastProvider";
@@ -42,6 +42,8 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   const { confirm } = useDialog();
   const searchParams = useSearchParams();
   const [gPressed, setGPressed] = useState(false);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
 
   // Listen to user's task projects
   useEffect(() => {
@@ -113,22 +115,129 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   }, [project, columns, tasks, selectedTaskId]);
 
   async function onDragEnd(result: DropResult) {
-    if (!project) return;
+    if (!project || !user) return;
     const { destination, source, draggableId } = result;
     if (!destination) return;
     const fromCol = source.droppableId;
     const toCol = destination.droppableId;
     if (fromCol === toCol && source.index === destination.index) return;
+
+    // Get current tasks snapshot
     const fromTasks = tasks[fromCol] || [];
     const toTasks = tasks[toCol] || [];
-    const reordered = [...toTasks];
-    const moving: Task = (tasks[fromCol] || []).find((t) => t.taskId === draggableId)!;
-    const srcList = [...fromTasks].filter((t) => t.taskId !== draggableId);
-    reordered.splice(destination.index, 0, moving);
-    const newOrder = computeNewOrder(reordered, destination.index);
-    
+    const moving = fromTasks.find((t) => t.taskId === draggableId);
+
+    if (!moving) {
+      console.error('Task not found:', draggableId);
+      return;
+    }
+
+    // Get filtered tasks - these are what the user sees and drags
+    const fromFiltered = filterTasks(fromTasks);
+    const toFiltered = filterTasks(toTasks);
+
+    let newOrder: string;
+
+    if (fromCol === toCol) {
+      // Same column reordering
+      // Remove dragged task from full list
+      const withoutDragged = fromTasks.filter(t => t.taskId !== draggableId);
+
+      // Remove dragged from filtered view to get neighbors
+      const filteredWithoutDragged = fromFiltered.filter(t => t.taskId !== draggableId);
+      const taskBefore = destination.index > 0 ? filteredWithoutDragged[destination.index - 1] : null;
+      const taskAfter = filteredWithoutDragged[destination.index];
+
+      // Find where to insert in the FULL list based on filtered neighbors
+      let insertIndex: number;
+      if (taskAfter) {
+        // Insert before taskAfter in the full list
+        insertIndex = withoutDragged.findIndex(t => t.taskId === taskAfter.taskId);
+      } else if (taskBefore) {
+        // Insert after taskBefore in the full list
+        insertIndex = withoutDragged.findIndex(t => t.taskId === taskBefore.taskId) + 1;
+      } else {
+        // Only task - insert at beginning
+        insertIndex = 0;
+      }
+
+      // Create the target array with task at new position
+      const targetArray = [...withoutDragged];
+      targetArray.splice(insertIndex, 0, moving);
+
+      // Compute order using the full array
+      newOrder = computeNewOrder(targetArray, insertIndex);
+
+      console.log('Same column drag:', {
+        taskId: draggableId,
+        from: source.index,
+        to: destination.index,
+        insertIndex,
+        neighbors: {
+          before: taskBefore ? `${taskBefore.title} (${taskBefore.order})` : 'none',
+          after: taskAfter ? `${taskAfter.title} (${taskAfter.order})` : 'none'
+        },
+        newOrder,
+        fullArrayLength: targetArray.length
+      });
+    } else {
+      // Different columns
+      const taskBefore = destination.index > 0 ? toFiltered[destination.index - 1] : null;
+      const taskAfter = toFiltered[destination.index];
+
+      // Find where to insert in the FULL destination list
+      let insertIndex: number;
+      if (taskAfter) {
+        insertIndex = toTasks.findIndex(t => t.taskId === taskAfter.taskId);
+      } else if (taskBefore) {
+        insertIndex = toTasks.findIndex(t => t.taskId === taskBefore.taskId) + 1;
+      } else {
+        insertIndex = toTasks.length;
+      }
+
+      // Create target array with task at new position
+      const targetArray = [...toTasks];
+      targetArray.splice(insertIndex, 0, moving);
+
+      // Compute order using the full array
+      newOrder = computeNewOrder(targetArray, insertIndex);
+
+      console.log('Cross-column drag:', {
+        taskId: draggableId,
+        from: { col: fromCol, index: source.index },
+        to: { col: toCol, index: destination.index },
+        insertIndex,
+        neighbors: {
+          before: taskBefore ? `${taskBefore.title} (${taskBefore.order})` : 'none',
+          after: taskAfter ? `${taskAfter.title} (${taskAfter.order})` : 'none'
+        },
+        newOrder,
+        fullArrayLength: targetArray.length
+      });
+    }
+
+    // Optimistic update with immediate state change
+    if (fromCol === toCol) {
+      const updatedList = fromTasks
+        .map(t => t.taskId === draggableId ? { ...t, order: newOrder } : t)
+        .sort((a, b) => a.order.localeCompare(b.order));
+      setTasks(prev => ({ ...prev, [fromCol]: updatedList }));
+    } else {
+      const updatedSource = fromTasks.filter(t => t.taskId !== draggableId);
+      const updatedDest = [...toTasks, { ...moving, order: newOrder, columnId: toCol }]
+        .sort((a, b) => a.order.localeCompare(b.order));
+      setTasks(prev => ({ ...prev, [fromCol]: updatedSource, [toCol]: updatedDest }));
+    }
+
+    // Update Firestore (listener will confirm)
+    await updateTask(project.projectId, draggableId, { columnId: toCol, order: newOrder })
+      .catch((err) => {
+        console.error('Failed to update task:', err);
+        addToast({ title: 'Move failed', kind: 'error' });
+      });
+
     // Notify assignee if column changed
-    if (fromCol !== toCol && moving.assigneeId && moving.assigneeId !== user?.uid) {
+    if (fromCol !== toCol && moving.assigneeId && moving.assigneeId !== user.uid) {
       const fromColName = columns.find(c => c.columnId === fromCol)?.name || 'column';
       const toColName = columns.find(c => c.columnId === toCol)?.name || 'column';
       const { addNotification } = await import("@/lib/notifications");
@@ -138,13 +247,8 @@ export default function BoardClient({ boardId }: { boardId: string }) {
         type: "status-change",
         title: "Task status changed",
         text: `"${moving.title}" moved from ${fromColName} to ${toColName}`,
-      }).catch(() => {}); // Silent fail for notifications
+      }).catch(() => {});
     }
-    
-    updateTask(project.projectId, draggableId, { columnId: toCol, order: newOrder })
-      .then(() => addToast({ title: 'Task moved', kind: 'success', duration: 1500 }))
-      .catch(() => addToast({ title: 'Move failed (will resync)', kind: 'error' }));
-    setTasks({ ...tasks, [fromCol]: srcList, [toCol]: reordered.map((t, i) => (i === destination.index ? { ...t, order: newOrder, columnId: toCol } : t)) });
   }
 
   useEffect(() => {
@@ -240,11 +344,43 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   }, [searchParams]);
 
   const userCanEdit = project && user ? canEditTasks(project, user.uid) : false;
-  
+
+  // Filter tasks based on selected projects and assignees
+  const filterTasks = (columnTasks: Task[]): Task[] => {
+    let filtered = columnTasks;
+
+    // Filter by project
+    if (selectedProjects.length > 0) {
+      filtered = filtered.filter(task => {
+        if (selectedProjects.includes('no-project')) {
+          return !task.projectId || selectedProjects.includes(task.projectId);
+        }
+        return task.projectId && selectedProjects.includes(task.projectId);
+      });
+    }
+
+    // Filter by assignee
+    if (selectedAssignees.length > 0) {
+      filtered = filtered.filter(task => {
+        if (selectedAssignees.includes('unassigned')) {
+          return !task.assigneeId || selectedAssignees.includes(task.assigneeId);
+        }
+        return task.assigneeId && selectedAssignees.includes(task.assigneeId);
+      });
+    }
+
+    return filtered;
+  };
+
   // Calculate overall progress
   const allTasks = Object.values(tasks).flat();
   const doneCol = columns.find(c => c.name.toLowerCase().includes('done'))?.columnId || columns[columns.length-1]?.columnId || '';
   const progress = calculateProgress(allTasks, doneCol);
+
+  // Get unique projects available on this board
+  const boardProjectIds = new Set(allTasks.map(t => t.projectId).filter(Boolean));
+  const availableProjects = userProjects.filter(p => boardProjectIds.has(p.projectId));
+  const hasTasksWithoutProject = allTasks.some(t => !t.projectId);
 
   return (
     <ErrorBoundary>
@@ -335,11 +471,140 @@ export default function BoardClient({ boardId }: { boardId: string }) {
               )}
             </div>
 
+            {/* Filters Section */}
+            <div className="mb-6 nb-card-elevated rounded-2xl p-6 shadow-lg border border-opacity-10" style={{ borderColor: 'var(--nb-ink)' }}>
+              <div className="flex flex-wrap items-center gap-4">
+
+                {/* Project Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 70%, transparent)' }}>
+                    Projects:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {hasTasksWithoutProject && (
+                      <button
+                        onClick={() => {
+                          const isSelected = selectedProjects.includes('no-project');
+                          if (isSelected) {
+                            setSelectedProjects(selectedProjects.filter(id => id !== 'no-project'));
+                          } else {
+                            setSelectedProjects([...selectedProjects, 'no-project']);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                        style={{
+                          backgroundColor: selectedProjects.includes('no-project') ? 'color-mix(in srgb, var(--nb-ink) 30%, transparent)' : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                          color: selectedProjects.includes('no-project') ? 'white' : 'var(--nb-ink)',
+                          boxShadow: selectedProjects.includes('no-project') ? '0 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
+                        }}
+                      >
+                        No Project
+                      </button>
+                    )}
+                    {availableProjects.map(proj => {
+                      const isSelected = selectedProjects.includes(proj.projectId);
+                      return (
+                        <button
+                          key={proj.projectId}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedProjects(selectedProjects.filter(id => id !== proj.projectId));
+                            } else {
+                              setSelectedProjects([...selectedProjects, proj.projectId]);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                          style={{
+                            backgroundColor: isSelected ? proj.color : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                            color: isSelected ? '#1d1d1d' : 'var(--nb-ink)',
+                            boxShadow: isSelected ? `0 2px 8px ${proj.color}40` : 'none'
+                          }}
+                        >
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#1d1d1d' : proj.color }}></div>
+                          {proj.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Assignee Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 70%, transparent)' }}>
+                    Assignees:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        const isSelected = selectedAssignees.includes('unassigned');
+                        if (isSelected) {
+                          setSelectedAssignees(selectedAssignees.filter(id => id !== 'unassigned'));
+                        } else {
+                          setSelectedAssignees([...selectedAssignees, 'unassigned']);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                      style={{
+                        backgroundColor: selectedAssignees.includes('unassigned') ? 'var(--nb-accent)' : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                        color: selectedAssignees.includes('unassigned') ? '#1d1d1d' : 'var(--nb-ink)',
+                        boxShadow: selectedAssignees.includes('unassigned') ? '0 2px 8px rgba(252, 197, 109, 0.3)' : 'none'
+                      }}
+                    >
+                      Unassigned
+                    </button>
+                    {memberProfiles.map(member => {
+                      const isSelected = selectedAssignees.includes(member.uid);
+                      return (
+                        <button
+                          key={member.uid}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedAssignees(selectedAssignees.filter(id => id !== member.uid));
+                            } else {
+                              setSelectedAssignees([...selectedAssignees, member.uid]);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                          style={{
+                            backgroundColor: isSelected ? 'var(--nb-teal)' : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                            color: isSelected ? 'white' : 'var(--nb-ink)',
+                            boxShadow: isSelected ? '0 2px 8px rgba(46, 167, 160, 0.3)' : 'none'
+                          }}
+                        >
+                          <Avatar uid={member.uid} name={member.name} email={member.email} size={20} />
+                          {member.name || member.email}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Clear Filters */}
+                {(selectedProjects.length > 0 || selectedAssignees.length > 0) && (
+                  <button
+                    onClick={() => {
+                      setSelectedProjects([]);
+                      setSelectedAssignees([]);
+                    }}
+                    className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                    style={{
+                      backgroundColor: 'var(--nb-coral)',
+                      color: '#1d1d1d',
+                      boxShadow: '0 2px 8px rgba(244, 108, 107, 0.3)'
+                    }}
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Board Columns */}
             <DragDropContext onDragEnd={onDragEnd}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {columns.map((c) => {
                   const columnTasks = tasks[c.columnId] || [];
+                  const filteredTasks = filterTasks(columnTasks);
                   return (
                     <div
                       key={c.columnId}
@@ -364,7 +629,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                 color: 'var(--nb-teal)'
                               }}
                             >
-                              {columnTasks.length}
+                              {filteredTasks.length}
                             </span>
                           </div>
                         </div>
@@ -403,7 +668,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                               minHeight: '300px',
                             }}
                           >
-                            {columnTasks.length === 0 && (
+                            {filteredTasks.length === 0 && (
                               <div className="flex flex-col items-center justify-center py-12 px-4">
                                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 5%, transparent)' }}>
                                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'color-mix(in srgb, var(--nb-ink) 30%, transparent)' }}>
@@ -420,7 +685,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                 )}
                               </div>
                             )}
-                            {columnTasks.map((t, idx) => {
+                            {filteredTasks.map((t, idx) => {
                               const subs = allSubtasks.filter((st) => st.parentTaskId === t.taskId);
                               const doneCol = (columns.find(col=>col.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId;
                               const doneCount = subs.filter((s) => s.columnId === doneCol).length;

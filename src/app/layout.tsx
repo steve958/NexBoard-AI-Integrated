@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? "NexBoard",
   description: "NexBoard - Collaborative Kanban Board Application",
   icons: {
-    icon: '/favicon.ico',
+    icon: 'favicon.ico',
   },
 };
 

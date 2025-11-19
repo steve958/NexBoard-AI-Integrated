@@ -15,14 +15,14 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="mb-8 flex items-center justify-center">
             <div
-              className="p-[10px] rounded-[20px]"
+              className="rounded-[20px]"
               style={{ backgroundColor: '#FAFAFA' }}
             >
               <Image
                 src="/logo.png"
                 alt="NexBoard Logo"
-                width={256}
-                height={256}
+                width={200}
+                height={200}
                 priority
                 className="h-64 w-64 lg:h-72 lg:w-72"
               />
