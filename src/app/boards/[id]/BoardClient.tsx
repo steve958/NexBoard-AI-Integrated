@@ -8,7 +8,7 @@ import { getUsersByIds, type UserProfile } from "@/lib/projects";
 import { registerCommands } from "@/lib/commands";
 import Avatar from "@/components/Avatar";
 import DueChip from "@/components/DueChip";
-import type { Task } from "@/lib/taskTypes";
+import type { Task, TaskType } from "@/lib/taskTypes";
 import type { TaskProject } from "@/lib/taskProjectTypes";
 import { listenUserTaskProjects } from "@/lib/taskProjects";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
@@ -44,6 +44,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   const [gPressed, setGPressed] = useState(false);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedTaskTypes, setSelectedTaskTypes] = useState<TaskType[]>([]);
 
   // Listen to user's task projects
   useEffect(() => {
@@ -369,6 +370,13 @@ export default function BoardClient({ boardId }: { boardId: string }) {
       });
     }
 
+
+    // Filter by task type
+    if (selectedTaskTypes.length > 0) {
+      filtered = filtered.filter(task => {
+        return task.taskType && selectedTaskTypes.includes(task.taskType);
+      });
+    }
     return filtered;
   };
 
@@ -580,11 +588,64 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                 </div>
 
                 {/* Clear Filters */}
-                {(selectedProjects.length > 0 || selectedAssignees.length > 0) && (
+
+                {/* Task Type Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 70%, transparent)' }}>
+                    Task Types:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['BUG', 'FEATURE', 'TEST'] as TaskType[]).map(type => {
+                      const isSelected = selectedTaskTypes.includes(type);
+                      const styles = {
+                        BUG: { bg: 'var(--nb-coral)', shadow: 'rgba(244, 108, 107, 0.3)' },
+                        FEATURE: { bg: 'var(--nb-teal)', shadow: 'rgba(46, 167, 160, 0.3)' },
+                        TEST: { bg: 'var(--nb-accent)', shadow: 'rgba(252, 197, 109, 0.3)' }
+                      };
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedTaskTypes(selectedTaskTypes.filter(t => t !== type));
+                            } else {
+                              setSelectedTaskTypes([...selectedTaskTypes, type]);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                          style={{
+                            backgroundColor: isSelected ? styles[type].bg : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                            color: isSelected ? (type === 'TEST' ? '#1d1d1d' : 'white') : 'var(--nb-ink)',
+                            boxShadow: isSelected ? `0 2px 8px ${styles[type].shadow}` : 'none'
+                          }}
+                        >
+                          {type === 'BUG' && (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                          {type === 'FEATURE' && (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          )}
+                          {type === 'TEST' && (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                          )}
+                          {type}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {(selectedProjects.length > 0 || selectedAssignees.length > 0 || selectedTaskTypes.length > 0) && (
                   <button
                     onClick={() => {
                       setSelectedProjects([]);
                       setSelectedAssignees([]);
+                      setSelectedTaskTypes([]);
                     }}
                     className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
                     style={{
@@ -766,6 +827,40 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                       )}
 
                                       {/* Project Badge */}
+
+                                      {/* Task Type Badge */}
+                                      {t.taskType && (
+                                        <div className="mb-3">
+                                          <span
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                                            style={{
+                                              backgroundColor: t.taskType === 'BUG' ? 'color-mix(in srgb, var(--nb-coral) 20%, transparent)' :
+                                                t.taskType === 'FEATURE' ? 'color-mix(in srgb, var(--nb-teal) 20%, transparent)' :
+                                                'color-mix(in srgb, var(--nb-accent) 20%, transparent)',
+                                              color: t.taskType === 'BUG' ? 'var(--nb-coral)' :
+                                                t.taskType === 'FEATURE' ? 'var(--nb-teal)' :
+                                                'var(--nb-accent)'
+                                            }}
+                                          >
+                                            {t.taskType === 'BUG' && (
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                            )}
+                                            {t.taskType === 'FEATURE' && (
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                              </svg>
+                                            )}
+                                            {t.taskType === 'TEST' && (
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                              </svg>
+                                            )}
+                                            {t.taskType}
+                                          </span>
+                                        </div>
+                                      )}
                                       {t.projectId && (() => {
                                         const taskProject = userProjects.find(p => p.projectId === t.projectId);
                                         return taskProject ? (

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import type { Task, TaskPriority } from "@/lib/taskTypes";
+import type { Task, TaskPriority, TaskType } from "@/lib/taskTypes";
 import type { TaskProject } from "@/lib/taskProjectTypes";
 import { listenUserTaskProjects } from "@/lib/taskProjects";
 import { useDialog } from "@/components/DialogProvider";
@@ -48,6 +48,7 @@ export default function TaskEditor({
   const [taskProjectId, setTaskProjectId] = useState<string | undefined>(task.projectId);
   const [estimation, setEstimation] = useState<number | undefined>(task.estimation);
   const [priority, setPriority] = useState<TaskPriority | undefined>(task.priority);
+  const [taskType, setTaskType] = useState<TaskType | undefined>(task.taskType);
   const [dueDate, setDueDate] = useState<string | undefined>(() => {
     if (!task.dueDate) return undefined;
     const date = typeof task.dueDate === 'object' && task.dueDate && 'toDate' in task.dueDate
@@ -95,8 +96,24 @@ export default function TaskEditor({
       newErrors.estimation = true;
     }
     if (!priority) {
+    if (!taskType) {
+      missingFields.push("Task Type");
+      newErrors.taskType = true;
+    }
       missingFields.push("Priority");
+    if (!taskType) {
+      missingFields.push("Task Type");
+      newErrors.taskType = true;
+    }
       newErrors.priority = true;
+    if (!taskType) {
+      missingFields.push("Task Type");
+      newErrors.taskType = true;
+    }
+    }
+    if (!taskType) {
+      missingFields.push("Task Type");
+      newErrors.taskType = true;
     }
     if (!dueDate) {
       missingFields.push("Due date");
@@ -317,6 +334,22 @@ export default function TaskEditor({
             </select>
           </div>
           <div>
+            <label className="block text-sm font-semibold mb-2" style={{ color: errors.taskType ? 'var(--nb-coral)' : 'var(--nb-ink)' }}>
+              Task Type {errors.taskType && <span className="text-xs">*Required</span>}
+            </label>
+            <select
+              value={taskType || ""}
+              onChange={(e)=> { setTaskType((e.target.value as TaskType) || undefined); setErrors(prev => ({ ...prev, taskType: false })); }}
+              className={selectClass}
+              style={getSelectStyle('taskType')}
+            >
+              <option value="" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>Select task type...</option>
+              <option value="BUG" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>Bug</option>
+              <option value="FEATURE" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>Feature</option>
+              <option value="TEST" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>Test</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: errors.dueDate ? 'var(--nb-coral)' : 'var(--nb-ink)' }}>
               Due date {errors.dueDate && <span className="text-xs">*Required</span>}
             </label>
@@ -425,7 +458,7 @@ export default function TaskEditor({
               }
 
               setBusy(true);
-              try { await onSave({ title, description, assigneeId, projectId: taskProjectId, estimation, priority, dueDate }); onClose(); } finally { setBusy(false); }
+              try { await onSave({ title, description, assigneeId, projectId: taskProjectId, estimation, priority, taskType, dueDate }); onClose(); } finally { setBusy(false); }
             }}
             className="h-10 px-6 rounded-lg nb-btn-primary font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg"
             disabled={busy}
