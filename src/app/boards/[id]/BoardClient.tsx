@@ -45,6 +45,16 @@ export default function BoardClient({ boardId }: { boardId: string }) {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedTaskTypes, setSelectedTaskTypes] = useState<TaskType[]>([]);
+  const [visibleTasksPerColumn, setVisibleTasksPerColumn] = useState<Record<string, number>>({});
+
+  // Initialize visible tasks per column (5 tasks per column)
+  useEffect(() => {
+    const initialVisible: Record<string, number> = {};
+    columns.forEach(col => {
+      initialVisible[col.columnId] = 5;
+    });
+    setVisibleTasksPerColumn(initialVisible);
+  }, [columns.length]); // Only re-run when number of columns changes
 
   // Listen to user's task projects
   useEffect(() => {
@@ -347,6 +357,14 @@ export default function BoardClient({ boardId }: { boardId: string }) {
     return filtered;
   };
 
+  // Function to load more tasks for a specific column
+  const loadMoreTasks = (columnId: string) => {
+    setVisibleTasksPerColumn(prev => ({
+      ...prev,
+      [columnId]: (prev[columnId] || 5) + 5
+    }));
+  };
+
   // Calculate overall progress
   const allTasks = Object.values(tasks).flat();
   const doneCol = columns.find(c => c.name.toLowerCase().includes('done'))?.columnId || columns[columns.length-1]?.columnId || '';
@@ -633,6 +651,9 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                 {columns.map((c) => {
                   const columnTasks = tasks[c.columnId] || [];
                   const filteredTasks = filterTasks(columnTasks);
+                  const visibleLimit = visibleTasksPerColumn[c.columnId] || 5;
+                  const visibleTasks = filteredTasks.slice(0, visibleLimit);
+                  const hasMoreTasks = filteredTasks.length > visibleLimit;
                   return (
                     <div
                       key={c.columnId}
@@ -696,7 +717,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                               minHeight: '300px',
                             }}
                           >
-                            {filteredTasks.length === 0 && (
+                            {visibleTasks.length === 0 && (
                               <div className="flex flex-col items-center justify-center py-12 px-4">
                                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 5%, transparent)' }}>
                                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'color-mix(in srgb, var(--nb-ink) 30%, transparent)' }}>
@@ -713,7 +734,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                                 )}
                               </div>
                             )}
-                            {filteredTasks.map((t, idx) => {
+                            {visibleTasks.map((t, idx) => {
                               const subs = allSubtasks.filter((st) => st.parentTaskId === t.taskId);
                               const doneCol = (columns.find(col=>col.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId;
                               const doneCount = subs.filter((s) => s.columnId === doneCol).length;
@@ -922,6 +943,26 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                               );
                             })}
                             {provided.placeholder}
+
+                            {/* See More Button */}
+                            {hasMoreTasks && (
+                              <div className="pt-3 pb-2">
+                                <button
+                                  onClick={() => loadMoreTasks(c.columnId)}
+                                  className="w-full h-10 rounded-lg flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all duration-200 font-semibold"
+                                  style={{
+                                    backgroundColor: 'color-mix(in srgb, var(--nb-teal) 10%, transparent)',
+                                    color: 'var(--nb-teal)',
+                                    border: '1px solid color-mix(in srgb, var(--nb-teal) 20%, transparent)'
+                                  }}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                  See more ({filteredTasks.length - visibleLimit} remaining)
+                                </button>
+                              </div>
+                            )}
                           </div>
                             )}
                           </Droppable>
