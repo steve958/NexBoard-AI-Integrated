@@ -572,6 +572,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                     })}
                     {BOT_USERS.map(bot => {
                       const isSelected = selectedAssignees.includes(bot.uid);
+                      const botColor = bot.icon === 'warp' ? '#6366f1' : '#8b5cf6'; // indigo for Warp, purple for Cursor
                       return (
                         <button
                           key={bot.uid}
@@ -584,9 +585,9 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                           }}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
                           style={{
-                            backgroundColor: isSelected ? 'var(--nb-accent)' : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
-                            color: isSelected ? '#1d1d1d' : 'var(--nb-ink)',
-                            boxShadow: isSelected ? '0 2px 8px rgba(252, 197, 109, 0.3)' : 'none'
+                            backgroundColor: isSelected ? botColor : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                            color: isSelected ? 'white' : 'var(--nb-ink)',
+                            boxShadow: isSelected ? `0 2px 8px ${botColor}40` : 'none'
                           }}
                         >
                           <Avatar uid={bot.uid} name={bot.name} email={bot.email} size={20} />
@@ -764,7 +765,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                               const doneCol = (columns.find(col=>col.name.toLowerCase().includes('done'))?.columnId) || columns[columns.length-1]?.columnId;
                               const doneCount = subs.filter((s) => s.columnId === doneCol).length;
                               const hasSubtasks = subs.length > 0;
-                              const assignee = memberProfiles.find((mp) => mp.uid === t.assigneeId);
+                              const assignee = memberProfiles.find((mp) => mp.uid === t.assigneeId) || BOT_USERS.find(bot => bot.uid === t.assigneeId);
 
                               return (
                                 <Draggable draggableId={t.taskId} index={idx} key={t.taskId} isDragDisabled={!userCanEdit}>
