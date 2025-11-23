@@ -162,25 +162,9 @@ export default function BoardClient({ boardId }: { boardId: string }) {
         insertIndex = 0;
       }
 
-      // Create the target array with task at new position
-      const targetArray = [...withoutDragged];
-      targetArray.splice(insertIndex, 0, moving);
-
-      // Compute order using the full array
-      newOrder = computeNewOrder(targetArray, insertIndex);
-
-      console.log('Same column drag:', {
-        taskId: draggableId,
-        from: source.index,
-        to: destination.index,
-        insertIndex,
-        neighbors: {
-          before: taskBefore ? `${taskBefore.title} (${taskBefore.order})` : 'none',
-          after: taskAfter ? `${taskAfter.title} (${taskAfter.order})` : 'none'
-        },
-        newOrder,
-        fullArrayLength: targetArray.length
-      });
+      // Compute order using the full array WITHOUT the dragged task
+      // This ensures we use the true neighbors' order values
+      newOrder = computeNewOrder(withoutDragged, insertIndex);
     } else {
       // Different columns
       const taskBefore = destination.index > 0 ? toFiltered[destination.index - 1] : null;
@@ -196,25 +180,8 @@ export default function BoardClient({ boardId }: { boardId: string }) {
         insertIndex = toTasks.length;
       }
 
-      // Create target array with task at new position
-      const targetArray = [...toTasks];
-      targetArray.splice(insertIndex, 0, moving);
-
-      // Compute order using the full array
-      newOrder = computeNewOrder(targetArray, insertIndex);
-
-      console.log('Cross-column drag:', {
-        taskId: draggableId,
-        from: { col: fromCol, index: source.index },
-        to: { col: toCol, index: destination.index },
-        insertIndex,
-        neighbors: {
-          before: taskBefore ? `${taskBefore.title} (${taskBefore.order})` : 'none',
-          after: taskAfter ? `${taskAfter.title} (${taskAfter.order})` : 'none'
-        },
-        newOrder,
-        fullArrayLength: targetArray.length
-      });
+      // Compute order using the full destination list WITHOUT the dragged task
+      newOrder = computeNewOrder(toTasks, insertIndex);
     }
 
     // Optimistic update with immediate state change
