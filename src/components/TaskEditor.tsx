@@ -8,6 +8,8 @@ import { useToast } from "@/components/ToastProvider";
 import SubtaskList from "@/components/SubtaskList";
 import CommentsThread from "@/components/CommentsThread";
 import { improveTaskDescription } from "@/lib/aiml";
+import { BOT_USERS } from "@/lib/botUsers";
+import Avatar from "@/components/Avatar";
 
 export default function TaskEditor({
   mode = "edit",
@@ -294,11 +296,20 @@ export default function TaskEditor({
               style={getSelectStyle('assignee')}
             >
               <option value="" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>Select assignee...</option>
-              {members.map(m => (
-                <option key={m.uid} value={m.uid} style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>
-                  {m.name || m.email || m.uid}
-                </option>
-              ))}
+              <optgroup label="Team Members" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>
+                {members.map(m => (
+                  <option key={m.uid} value={m.uid} style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>
+                    {m.name || m.email || m.uid}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="AI Assistants" style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>
+                {BOT_USERS.map(bot => (
+                  <option key={bot.uid} value={bot.uid} style={{ backgroundColor: 'var(--nb-card)', color: 'var(--nb-ink)' }}>
+                    🤖 {bot.name}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
           <div>

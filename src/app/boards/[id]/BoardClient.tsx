@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { canEditTasks } from "@/lib/roles";
 import { calculateProgress } from "@/lib/progress";
+import { BOT_USERS } from "@/lib/botUsers";
 
 export default function BoardClient({ boardId }: { boardId: string }) {
   const { user } = useAuth();
@@ -566,6 +567,30 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                         >
                           <Avatar uid={member.uid} name={member.name} email={member.email} size={20} />
                           {member.name || member.email}
+                        </button>
+                      );
+                    })}
+                    {BOT_USERS.map(bot => {
+                      const isSelected = selectedAssignees.includes(bot.uid);
+                      return (
+                        <button
+                          key={bot.uid}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedAssignees(selectedAssignees.filter(id => id !== bot.uid));
+                            } else {
+                              setSelectedAssignees([...selectedAssignees, bot.uid]);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                          style={{
+                            backgroundColor: isSelected ? 'var(--nb-accent)' : 'color-mix(in srgb, var(--nb-ink) 8%, transparent)',
+                            color: isSelected ? '#1d1d1d' : 'var(--nb-ink)',
+                            boxShadow: isSelected ? '0 2px 8px rgba(252, 197, 109, 0.3)' : 'none'
+                          }}
+                        >
+                          <Avatar uid={bot.uid} name={bot.name} email={bot.email} size={20} />
+                          {bot.name}
                         </button>
                       );
                     })}
