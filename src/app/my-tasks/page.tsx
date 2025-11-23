@@ -9,6 +9,7 @@ import Link from "next/link";
 import DueChip from "@/components/DueChip";
 import Avatar from "@/components/Avatar";
 import { getUsersByIds, type UserProfile } from "@/lib/projects";
+import { BOT_USERS } from "@/lib/botUsers";
 
 type TaskWithProject = Task & {
   projectId: string;
@@ -56,10 +57,13 @@ export default function MyTasksPage() {
             columnMap[colDoc.id] = colDoc.data().name;
           });
           
-          // Get tasks assigned to user
+          // Get tasks assigned to user or to bot users
+          const botUids = BOT_USERS.map(bot => bot.uid);
+          const assigneeIds = [user!.uid, ...botUids];
+
           const tasksQuery = query(
             collection(db, `projects/${projectId}/tasks`),
-            where("assigneeId", "==", user!.uid)
+            where("assigneeId", "in", assigneeIds)
           );
           const tasksSnap = await getDocs(tasksQuery);
           
@@ -75,9 +79,10 @@ export default function MyTasksPage() {
           });
         }
         
-        // Load member profiles
+        // Load member profiles and add bot users
         const memberProfiles = await getUsersByIds(Array.from(allMemberIds));
-        setMembers(memberProfiles);
+        const allProfiles = [...memberProfiles, ...BOT_USERS];
+        setMembers(allProfiles);
         
         setTasks(allTasks);
       } catch (error) {
