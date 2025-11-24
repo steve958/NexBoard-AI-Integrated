@@ -3,7 +3,7 @@ export type BotUser = {
   name: string;
   email: string;
   isBot: true;
-  icon: 'warp' | 'cursor';
+  icon: 'warp' | 'cursor' | 'gpt';
 };
 
 export const BOT_USERS: BotUser[] = [
@@ -20,6 +20,13 @@ export const BOT_USERS: BotUser[] = [
     email: 'cursor@nexboard.bot',
     isBot: true,
     icon: 'cursor',
+  },
+  {
+    uid: 'bot-gpt',
+    name: 'GPT',
+    email: 'gpt@nexboard.bot',
+    isBot: true,
+    icon: 'gpt',
   },
 ];
 

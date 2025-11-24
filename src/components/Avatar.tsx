@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Image from "next/image";
 import { getBotUser } from "@/lib/botUsers";
 
 function colorFor(uid: string) {
@@ -17,38 +18,25 @@ function initials(name?: string, email?: string) {
   return (first + second).toUpperCase();
 }
 
-function RobotIcon({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Robot head */}
-      <rect x="6" y="8" width="12" height="10" rx="2" fill="currentColor" opacity="0.9"/>
-      {/* Antenna */}
-      <line x1="12" y1="4" x2="12" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.9"/>
-      <circle cx="12" cy="3" r="1.5" fill="currentColor" opacity="0.9"/>
-      {/* Eyes */}
-      <circle cx="9.5" cy="12" r="1.5" fill="white"/>
-      <circle cx="14.5" cy="12" r="1.5" fill="white"/>
-      {/* Mouth */}
-      <line x1="9" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.9"/>
-      {/* Body connector */}
-      <rect x="11" y="18" width="2" height="2" fill="currentColor" opacity="0.7"/>
-    </svg>
-  );
-}
-
 export default function Avatar({ uid, name, email, size = 20 }: { uid: string; name?: string; email?: string; size?: number }) {
   const botUser = getBotUser(uid);
 
   if (botUser) {
-    const botColor = botUser.icon === 'warp' ? '#6366f1' : '#8b5cf6'; // indigo for Warp, purple for Cursor
+    const logoSrc = `/${botUser.icon}.jpg`;
     return (
       <div
-        style={{ width: size, height: size, backgroundColor: botColor, color: 'white' }}
-        className="rounded-full flex items-center justify-center"
+        style={{ width: size, height: size }}
+        className="rounded-full flex items-center justify-center overflow-hidden"
         title={`${botUser.name} (AI Assistant)`}
         aria-label={`${botUser.name} (AI Assistant)`}
       >
-        <RobotIcon size={size * 0.7} />
+        <Image
+          src={logoSrc}
+          alt={`${botUser.name} logo`}
+          width={size}
+          height={size}
+          className="object-cover"
+        />
       </div>
     );
   }

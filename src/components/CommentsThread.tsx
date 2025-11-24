@@ -90,6 +90,44 @@ export default function CommentsThread({
     });
   }
 
+  const handleAddComment = async () => {
+    const t = text.trim();
+    if (!t) return;
+    try {
+      await addComment(projectId, taskId, currentUserId, t);
+      const { addNotification } = await import("@/lib/notifications");
+
+      // Mentions notifications
+      const hits = Array.from(t.matchAll(/@(\S+)/g)).map((m) => m[1].toLowerCase());
+      const targets = members.filter((m) => hits.includes((m.name || m.email || m.uid).toLowerCase()) && m.uid !== currentUserId);
+      if (targets.length) {
+        await Promise.all(targets.map((m)=> addNotification(projectId, {
+          userId: m.uid,
+          taskId,
+          type: "mention",
+          title: `Mentioned in a comment`,
+          text: t.slice(0, 280),
+        })));
+      }
+
+      // Notify assignee of new comment
+      if (taskAssigneeId && taskAssigneeId !== currentUserId && !targets.some(m => m.uid === taskAssigneeId)) {
+        await addNotification(projectId, {
+          userId: taskAssigneeId,
+          taskId,
+          type: "comment",
+          title: "New comment on your task",
+          text: `${taskTitle ? `On "${taskTitle}": ` : ""}${t.slice(0, 200)}`,
+        });
+      }
+
+      setText("");
+      addToast({ title: "Comment added", kind: "success" });
+    } catch {
+      addToast({ title: "Failed to add comment", kind: "error" });
+    }
+  };
+
   return (
     <div className="mt-4 space-y-2">
       <div className="nb-card rounded-lg p-3">
@@ -100,41 +138,8 @@ export default function CommentsThread({
             onChange={(e) => { setText(e.target.value); computeMentionState(e.target.value); }}
             onKeyDown={async (e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                const t = text.trim();
-                if (!t) return;
-                try {
-                  await addComment(projectId, taskId, currentUserId, t);
-                  const { addNotification } = await import("@/lib/notifications");
-                  
-                  // Mentions notifications
-                  const hits = Array.from(t.matchAll(/@(\S+)/g)).map((m) => m[1].toLowerCase());
-                  const targets = members.filter((m) => hits.includes((m.name || m.email || m.uid).toLowerCase()) && m.uid !== currentUserId);
-                  if (targets.length) {
-                    await Promise.all(targets.map((m)=> addNotification(projectId, {
-                      userId: m.uid,
-                      taskId,
-                      type: "mention",
-                      title: `Mentioned in a comment`,
-                      text: t.slice(0, 280),
-                    })));
-                  }
-                  
-                  // Notify assignee of new comment
-                  if (taskAssigneeId && taskAssigneeId !== currentUserId && !targets.some(m => m.uid === taskAssigneeId)) {
-                    await addNotification(projectId, {
-                      userId: taskAssigneeId,
-                      taskId,
-                      type: "comment",
-                      title: "New comment on your task",
-                      text: `${taskTitle ? `On "${taskTitle}": ` : ""}${t.slice(0, 200)}`,
-                    });
-                  }
-                  
-                  setText("");
-                  addToast({ title: "Comment added", kind: "success" });
-                } catch {
-                  addToast({ title: "Failed to add comment", kind: "error" });
-                }
+                e.preventDefault();
+                await handleAddComment();
               } else if (showMentions) {
                 if (e.key === "ArrowDown") { e.preventDefault(); setSelIdx((i) => Math.min(i + 1, Math.max(0, suggestions.length - 1))); }
                 else if (e.key === "ArrowUp") { e.preventDefault(); setSelIdx((i) => Math.max(i - 1, 0)); }
@@ -142,9 +147,15 @@ export default function CommentsThread({
                 else if (e.key === "Escape") { setShowMentions(false); }
               }
             }}
-            placeholder="Write a comment… Type @ to mention (Ctrl+Enter to send)"
+            placeholder="Write a comment… Type @ to mention"
             rows={3}
-            className="w-full bg-transparent border border-white/10 rounded p-2"
+            className="w-full bg-transparent rounded p-2 text-sm"
+            style={{
+              backgroundColor: 'var(--nb-card)',
+              border: '1.5px solid color-mix(in srgb, var(--nb-ink) 20%, transparent)',
+              color: 'var(--nb-ink)',
+              caretColor: 'var(--nb-teal)',
+            }}
           />
           {showMentions && suggestions.length > 0 && (
             <ul role="listbox" className="absolute left-2 top-full mt-1 w-64 max-h-48 overflow-auto rounded-md nb-card border border-white/10 z-10">
@@ -162,6 +173,22 @@ export default function CommentsThread({
               ))}
             </ul>
           )}
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <div className="text-xs" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>
+            Tip: Press Ctrl+Enter to add comment
+          </div>
+          <button
+            onClick={handleAddComment}
+            disabled={!text.trim()}
+            className="px-4 py-1.5 rounded-lg font-semibold text-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            style={{
+              backgroundColor: 'var(--nb-accent)',
+              color: 'white',
+            }}
+          >
+            Add Comment
+          </button>
         </div>
       </div>
       <ul className="space-y-2">
