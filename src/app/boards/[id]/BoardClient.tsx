@@ -1079,6 +1079,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                   projectId: data.projectId,
                   estimation: data.estimation,
                   priority: data.priority,
+                  taskType: data.taskType,
                   dueDate: data.dueDate,
                 });
                 addToast({ title: 'Task created', kind: 'success' });
