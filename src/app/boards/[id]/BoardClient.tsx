@@ -402,7 +402,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
             {/* Header Section */}
             <div className="mb-8">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                   <h1 className="text-4xl font-black nb-brand-text mb-2 tracking-tight">{project.name}</h1>
                   <div className="flex items-center gap-3">
@@ -418,7 +418,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                 </div>
                 <Link
                   href="/boards"
-                  className="h-11 px-5 rounded-xl nb-btn-secondary hover:bg-white/5 flex items-center gap-2.5 font-semibold transition-all hover:scale-105 active:scale-95 shadow-md"
+                  className="h-11 px-5 rounded-xl nb-btn-secondary hover:bg-white/5 flex items-center justify-center gap-2.5 font-semibold transition-all hover:scale-105 active:scale-95 shadow-md w-full sm:w-auto"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -470,7 +470,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
               <div className="flex flex-wrap items-center gap-4">
 
                 {/* Project Filter */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <label className="text-sm font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 70%, transparent)' }}>
                     Projects:
                   </label>
@@ -523,7 +523,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                 </div>
 
                 {/* Assignee Filter */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <label className="text-sm font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 70%, transparent)' }}>
                     Assignees:
                   </label>
@@ -601,7 +601,7 @@ export default function BoardClient({ boardId }: { boardId: string }) {
                 {/* Clear Filters */}
 
                 {/* Task Type Filter */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <label className="text-sm font-semibold" style={{ color: 'color-mix(in srgb, var(--nb-ink) 70%, transparent)' }}>
                     Task Types:
                   </label>

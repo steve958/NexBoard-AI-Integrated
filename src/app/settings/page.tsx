@@ -77,7 +77,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6">
       <div className="mx-auto max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
 
@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-sm mb-2 opacity-80">Scopes</label>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"

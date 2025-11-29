@@ -220,45 +220,45 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Recent Activity & My Tasks */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Quick Actions */}
-            <div className="nb-card-elevated rounded-xl p-6">
-              <h2 className="text-lg font-semibold mb-4 nb-brand-text">Quick Actions</h2>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex gap-2 flex-1">
-                  <input
-                    type="text"
-                    value={newBoardName}
-                    onChange={(e) => setNewBoardName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleCreateBoard()}
-                    placeholder="New board name..."
-                    className="flex-1 h-10 px-3 rounded-lg bg-transparent focus:outline-none focus:ring-2"
-                    style={{
-                      border: '1px solid color-mix(in srgb, var(--nb-ink) 15%, transparent)',
-                      color: 'var(--nb-ink)',
-                      caretColor: 'var(--nb-ink)'
-                    }}
-                  />
-                  <button
-                    onClick={handleCreateBoard}
-                    disabled={!newBoardName.trim() || creatingBoard}
-                    className="h-10 px-4 rounded-lg nb-btn-primary disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
-                  >
-                    Create Board
-                  </button>
-                </div>
-                <Link
-                  href="/boards"
-                  className="h-10 px-4 rounded-lg nb-btn-secondary flex items-center justify-center whitespace-nowrap transition-colors"
-                  style={{
-                    backgroundColor: 'transparent'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--nb-ink) 5%, transparent)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  View All Boards
-                </Link>
-              </div>
+        {/* Quick Actions */}
+        <div className="nb-card-elevated rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 nb-brand-text">Quick Actions</h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+              <input
+                type="text"
+                value={newBoardName}
+                onChange={(e) => setNewBoardName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateBoard()}
+                placeholder="New board name..."
+                className="flex-1 h-10 px-3 rounded-lg bg-transparent focus:outline-none focus:ring-2 py-2 nb-input"
+                style={{
+                  border: '1px solid color-mix(in srgb, var(--nb-ink) 15%, transparent)',
+                  color: 'var(--nb-ink)',
+                  caretColor: 'var(--nb-ink)'
+                }}
+              />
+              <button
+                onClick={handleCreateBoard}
+                disabled={!newBoardName.trim() || creatingBoard}
+                className="h-10 px-4 rounded-lg nb-btn-primary disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap w-full sm:w-auto flex items-center justify-center"
+              >
+                Create Board
+              </button>
             </div>
+            <Link
+              href="/boards"
+              className="h-10 px-4 rounded-lg nb-btn-secondary flex items-center justify-center whitespace-nowrap transition-colors"
+              style={{
+                backgroundColor: 'transparent'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--nb-ink) 5%, transparent)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              View All Boards
+            </Link>
+          </div>
+        </div>
 
             {/* Recent Activity */}
             <div className="nb-card-elevated rounded-xl p-6">

@@ -143,14 +143,14 @@ export default function MyProjectsPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
               <h1 className="text-4xl font-black nb-brand-text mb-2 tracking-tight">My Projects</h1>
               <p className="text-sm" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>
                 Organize your tasks across boards with projects
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/boards"
                 className="h-11 px-5 rounded-xl nb-btn-secondary hover:bg-white/5 flex items-center gap-2.5 font-semibold transition-all hover:scale-105 active:scale-95 shadow-md"

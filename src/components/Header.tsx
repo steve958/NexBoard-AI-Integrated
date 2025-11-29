@@ -67,12 +67,12 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 nb-surface">
-      <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl px-3 sm:px-4 py-2 flex flex-col gap-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="NexBoard" width={28} height={28} className="rounded-md bg-white/5" />
           <span className="font-semibold tracking-tight nb-brand-text">NexBoard</span>
         </Link>
-        <nav className="flex items-center gap-3 text-sm relative">
+        <nav className="flex items-center gap-2 sm:gap-3 text-sm relative flex-wrap justify-end sm:justify-start">
           {user && <Link href="/boards" className="hover:underline">Boards</Link>}
           {user && <Link href="/my-projects" className="hover:underline">My Projects</Link>}
           {user && <Link href="/my-tasks" className="hover:underline">My Tasks</Link>}

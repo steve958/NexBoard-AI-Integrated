@@ -39,11 +39,11 @@ export default function BoardsPage() {
   if (!user) return null;
 
   return (
-    <main className="min-h-screen p-6 sm:p-8" style={{ backgroundColor: 'var(--nb-bg)' }}>
+    <main className="min-h-screen p-4 sm:p-8" style={{ backgroundColor: 'var(--nb-bg)' }}>
       <div className="mx-auto max-w-5xl">
-        <header className="flex items-center justify-between mb-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <h1 className="text-2xl font-semibold tracking-tight nb-brand-text">Boards</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -114,7 +114,7 @@ export default function BoardsPage() {
                         setProfiles((prev) => ({ ...prev, [p.projectId]: pf }));
                       }
                     }}
-                    className="flex-1 min-w-[100px] h-9 px-3 rounded-lg text-sm nb-btn-secondary transition-colors"
+                    className="flex-1 min-w-[100px] h-9 px-4 rounded-lg text-sm nb-btn-secondary transition-colors flex items-center justify-center"
                     style={{
                       backgroundColor: 'transparent'
                     }}
@@ -135,7 +135,7 @@ export default function BoardsPage() {
                       if (!name) return;
                       await renameProject(p.projectId, name);
                     }}
-                    className="flex-1 min-w-[100px] h-9 px-3 rounded-lg text-sm nb-btn-secondary transition-colors"
+                    className="flex-1 min-w-[100px] h-9 px-4 rounded-lg text-sm nb-btn-secondary transition-colors flex items-center justify-center"
                     style={{
                       backgroundColor: 'transparent'
                     }}
@@ -156,7 +156,7 @@ export default function BoardsPage() {
                       if (!confirmed) return;
                       await deleteProject(p.projectId);
                     }}
-                    className="flex-1 min-w-[100px] h-9 px-3 rounded-lg text-sm nb-btn-secondary transition-colors"
+                    className="flex-1 min-w-[100px] h-9 px-4 rounded-lg text-sm nb-btn-secondary transition-colors flex items-center justify-center"
                     style={{
                       color: 'var(--nb-coral)',
                       backgroundColor: 'transparent'
