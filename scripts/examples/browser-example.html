@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexBoard API Client - Browser Example</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    .config {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 8px 12px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input { width: 100%; box-sizing: border-box; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .success { color: #4caf50; }
+    .error { color: #f44336; }
+    .info { color: #2196f3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 NexBoard API Client - Browser Example</h1>
+
+    <div class="config">
+      <h3>Configuration</h3>
+      <label>Base URL:</label>
+      <input type="text" id="baseUrl" value="https://your-nexboard.vercel.app" placeholder="https://your-nexboard.vercel.app">
+
+      <label>API Token:</label>
+      <input type="password" id="apiToken" value="" placeholder="nex_yourTokenHere">
+
+      <label>Project ID:</label>
+      <input type="text" id="projectId" value="" placeholder="your-project-id">
+
+      <label>Column ID (for creating tasks):</label>
+      <input type="text" id="columnId" value="" placeholder="your-column-id">
+    </div>
+
+    <h3>Actions</h3>
+    <button onclick="listTasks()">📋 List Tasks</button>
+    <button onclick="createTask()">✨ Create Task</button>
+    <button onclick="runAllExamples()">🔄 Run All Examples</button>
+    <button onclick="clearOutput()">🗑️ Clear Output</button>
+
+    <h3>Output</h3>
+    <div id="output" class="output">Ready to test the API...</div>
+  </div>
+
+  <!-- Load the API client -->
+  <script src="../nexboard-api-client.js"></script>
+
+  <script>
+    let client = null;
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const timestamp = new Date().toLocaleTimeString();
+      const colors = {
+        info: 'info',
+        success: 'success',
+        error: 'error'
+      };
+      output.innerHTML += `<span class="${colors[type]}">[${timestamp}] ${message}</span>\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearOutput() {
+      document.getElementById('output').innerHTML = 'Output cleared.\n';
+    }
+
+    function getClient() {
+      const baseUrl = document.getElementById('baseUrl').value;
+      const apiToken = document.getElementById('apiToken').value;
+
+      if (!baseUrl || !apiToken) {
+        log('❌ Please configure Base URL and API Token', 'error');
+        throw new Error('Missing configuration');
+      }
+
+      if (!client) {
+        client = new NexBoardClient(baseUrl, apiToken);
+        log('✅ API Client initialized', 'success');
+      }
+
+      return client;
+    }
+
+    async function listTasks() {
+      try {
+        const client = getClient();
+        const projectId = document.getElementById('projectId').value;
+
+        if (!projectId) {
+          log('❌ Please enter Project ID', 'error');
+          return;
+        }
+
+        log('📋 Fetching tasks...', 'info');
+        const tasks = await client.getTasks(projectId);
+
+        log(`✅ Found ${tasks.length} tasks:`, 'success');
+        tasks.forEach(task => {
+          log(`  - ${task.title} (${task.taskId})`, 'info');
+        });
+
+      } catch (error) {
+        if (error.name === 'NexBoardError') {
+          log(`❌ API Error (${error.statusCode}): ${error.message}`, 'error');
+        } else {
+          log(`❌ Error: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function createTask() {
+      try {
+        const client = getClient();
+        const projectId = document.getElementById('projectId').value;
+        const columnId = document.getElementById('columnId').value;
+
+        if (!projectId || !columnId) {
+          log('❌ Please enter Project ID and Column ID', 'error');
+          return;
+        }
+
+        log('✨ Creating new task...', 'info');
+
+        const newTask = await client.createTask({
+          projectId,
+          title: 'Task from Browser',
+          description: 'Created using the browser example at ' + new Date().toLocaleString(),
+          columnId,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        });
+
+        log(`✅ Task created: ${newTask.title} (${newTask.taskId})`, 'success');
+
+      } catch (error) {
+        if (error.name === 'NexBoardError') {
+          log(`❌ API Error (${error.statusCode}): ${error.message}`, 'error');
+        } else {
+          log(`❌ Error: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function runAllExamples() {
+      try {
+        const client = getClient();
+        const projectId = document.getElementById('projectId').value;
+        const columnId = document.getElementById('columnId').value;
+
+        if (!projectId || !columnId) {
+          log('❌ Please enter Project ID and Column ID', 'error');
+          return;
+        }
+
+        log('🔄 Running all examples...', 'info');
+        log('', 'info');
+
+        // 1. List tasks
+        log('1️⃣ Listing tasks...', 'info');
+        const tasks = await client.getTasks(projectId);
+        log(`   Found ${tasks.length} tasks`, 'success');
+        log('', 'info');
+
+        // 2. Create task
+        log('2️⃣ Creating task...', 'info');
+        const newTask = await client.createTask({
+          projectId,
+          title: 'Test Task ' + Date.now(),
+          description: 'Testing all API methods',
+          columnId
+        });
+        log(`   Created: ${newTask.taskId}`, 'success');
+        log('', 'info');
+
+        // 3. Get single task
+        log('3️⃣ Getting single task...', 'info');
+        const task = await client.getTask(newTask.taskId);
+        log(`   Retrieved: ${task.title}`, 'success');
+        log('', 'info');
+
+        // 4. Update task
+        log('4️⃣ Updating task...', 'info');
+        await client.updateTask(newTask.taskId, {
+          description: 'Updated description'
+        });
+        log('   Task updated', 'success');
+        log('', 'info');
+
+        // 5. Delete task
+        log('5️⃣ Deleting task...', 'info');
+        await client.deleteTask(newTask.taskId);
+        log('   Task deleted', 'success');
+        log('', 'info');
+
+        log('✅ All examples completed successfully!', 'success');
+
+      } catch (error) {
+        if (error.name === 'NexBoardError') {
+          log(`❌ API Error (${error.statusCode}): ${error.message}`, 'error');
+        } else {
+          log(`❌ Error: ${error.message}`, 'error');
+        }
+      }
+    }
+  </script>
+</body>
+</html>
