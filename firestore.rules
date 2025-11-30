@@ -31,10 +31,10 @@ service cloud.firestore {
       match /columns/{columnId} {
         allow read: if request.auth != null &&
           request.auth.uid in get(/databases/$(db)/documents/projects/$(projectId)).data.members;
-        // Allow create during project initialization (batch write) or if user has editor role
+        // Allow create if user will be owner/editor after batch completes
         allow create: if request.auth != null &&
-          (exists(/databases/$(db)/documents/projects/$(projectId)) == false ||
-           hasRole(get(/databases/$(db)/documents/projects/$(projectId)).data, request.auth.uid, 'editor'));
+          (request.auth.uid == getAfter(/databases/$(db)/documents/projects/$(projectId)).data.ownerId ||
+           hasRole(getAfter(/databases/$(db)/documents/projects/$(projectId)).data, request.auth.uid, 'editor'));
         // For update/delete, user must have editor role
         allow update, delete: if request.auth != null &&
           hasRole(get(/databases/$(db)/documents/projects/$(projectId)).data, request.auth.uid, 'editor');
