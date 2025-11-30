@@ -88,7 +88,7 @@ body {
 .nb-btn-primary { background-color: var(--nb-accent); color: #1d1d1d; }
 .nb-btn-primary:hover { filter: brightness(0.95); }
 .nb-btn-secondary { border: 1px solid color-mix(in srgb, var(--nb-ink) 20%, transparent); }
-.nb-brand-text { background: linear-gradient(90deg, var(--nb-accent), var(--nb-teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.nb-brand-text { color: var(--nb-ink); }
 .nb-chip-teal { background-color: color-mix(in srgb, var(--nb-teal) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-coral { background-color: color-mix(in srgb, var(--nb-coral) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-amber { background-color: color-mix(in srgb, var(--nb-accent) 20%, transparent); color: #1d1d1d; }
