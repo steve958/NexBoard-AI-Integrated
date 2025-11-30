@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexBoard API Tester - Localhost Version</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #1976d2;
+    }
+    .config {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+    input, button {
+      padding: 8px 12px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: monospace;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin-top: 15px;
+    }
+    .success { color: #4caf50; }
+    .error { color: #f44336; }
+    .info-text { color: #2196f3; }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      color: #856404;
+    }
+    .step {
+      background: #f8f9fa;
+      border-left: 4px solid #007bff;
+      padding: 10px 15px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 NexBoard API Tester</h1>
+    <p style="color: #666; margin-top: 0;">Testing API endpoints on localhost:3000</p>
+
+    <div class="info" id="infoBox">
+      <strong>📍 You're testing on:</strong> <span id="currentUrl"></span><br>
+      Make sure your dev server is running on the same origin to avoid CORS issues.
+    </div>
+
+    <div class="config">
+      <h3 style="margin-top: 0;">Configuration</h3>
+
+      <label>API Token:</label>
+      <input type="password" id="apiToken" value="" placeholder="nex_yourTokenHere">
+      <small style="color: #666;">Get this from Settings → Personal API Tokens</small>
+
+      <label>Project ID:</label>
+      <input type="text" id="projectId" value="" placeholder="your-project-id">
+      <small style="color: #666;">Get this from the URL when viewing a board: /boards/<strong>[projectId]</strong></small>
+    </div>
+
+    <div class="warning">
+      ⚠️ <strong>Setup Steps:</strong>
+      <ol style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Get your API token from <strong>Settings → Personal API Tokens</strong></li>
+        <li>Get your Project ID from a board URL: <code>/boards/<strong>[projectId]</strong></code></li>
+        <li>Enter both values above and click a test button</li>
+      </ol>
+    </div>
+
+    <h3>Quick Tests</h3>
+    <button onclick="testConnection()">1️⃣ Test Connection</button>
+    <button onclick="listTasks()">2️⃣ List Tasks</button>
+    <button onclick="createTask()">3️⃣ Create Task</button>
+    <button onclick="runFullTest()">🔄 Run Full Test Suite</button>
+    <button onclick="clearOutput()">🗑️ Clear Output</button>
+
+    <h3>Output</h3>
+    <div id="output" class="output">Ready to test API...\n\nPlease configure your API token and Project ID above, then click a test button.</div>
+  </div>
+
+  <script>
+    // Auto-detect base URL
+    const BASE_URL = window.location.origin;
+    document.getElementById('currentUrl').textContent = BASE_URL;
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const timestamp = new Date().toLocaleTimeString();
+      const colors = {
+        info: 'info-text',
+        success: 'success',
+        error: 'error'
+      };
+      output.innerHTML += `<span class="${colors[type]}">[${timestamp}] ${message}</span>\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearOutput() {
+      document.getElementById('output').innerHTML = 'Output cleared.\n';
+    }
+
+    function getConfig() {
+      const apiToken = document.getElementById('apiToken').value;
+      const projectId = document.getElementById('projectId').value;
+
+      if (!apiToken) {
+        log('❌ Please enter your API Token', 'error');
+        throw new Error('Missing API Token');
+      }
+
+      if (!projectId) {
+        log('❌ Please enter a Project ID', 'error');
+        throw new Error('Missing Project ID');
+      }
+
+      return { apiToken, projectId };
+    }
+
+    async function testConnection() {
+      try {
+        clearOutput();
+        log('🔌 Testing API connection...', 'info');
+
+        const { apiToken, projectId } = getConfig();
+
+        log(`📡 Making request to: ${BASE_URL}/api/projects/${projectId}/tasks`, 'info');
+        log(`🔑 Using token: ${apiToken.substring(0, 15)}...`, 'info');
+
+        const response = await fetch(`${BASE_URL}/api/projects/${projectId}/tasks`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        log(`📊 Response status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+        const data = await response.json();
+
+        if (response.ok) {
+          log('✅ Connection successful!', 'success');
+          log(`📋 Found ${data.tasks?.length || 0} tasks`, 'success');
+          log('', 'info');
+          log('Response:', 'info');
+          log(JSON.stringify(data, null, 2), 'info');
+        } else {
+          log('❌ Connection failed', 'error');
+          log(`Error: ${data.error || 'Unknown error'}`, 'error');
+        }
+
+      } catch (error) {
+        log(`❌ Request failed: ${error.message}`, 'error');
+        log('', 'info');
+        log('💡 Troubleshooting tips:', 'info');
+        log('  1. Is the dev server running? (npm run dev)', 'info');
+        log('  2. Is this page served from localhost:3000?', 'info');
+        log('  3. Is your API token valid and not revoked?', 'info');
+        log('  4. Does the project ID exist?', 'info');
+      }
+    }
+
+    async function listTasks() {
+      try {
+        clearOutput();
+        const { apiToken, projectId } = getConfig();
+
+        log('📋 Fetching tasks...', 'info');
+
+        const response = await fetch(`${BASE_URL}/api/projects/${projectId}/tasks`, {
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          log(`✅ Found ${data.tasks.length} tasks:`, 'success');
+          data.tasks.forEach(task => {
+            log(`  - ${task.title} (ID: ${task.taskId})`, 'info');
+          });
+        } else {
+          log(`❌ Error: ${data.error}`, 'error');
+        }
+
+      } catch (error) {
+        log(`❌ Failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function createTask() {
+      try {
+        clearOutput();
+        const { apiToken, projectId } = getConfig();
+
+        log('✨ Creating new task...', 'info');
+
+        const taskData = {
+          title: `Test Task ${Date.now()}`,
+          description: 'Created via API test page',
+          status: 'backlog'
+        };
+
+        log(`📤 Sending: ${JSON.stringify(taskData, null, 2)}`, 'info');
+
+        const response = await fetch(`${BASE_URL}/api/projects/${projectId}/tasks`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(taskData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          log(`✅ Task created: ${data.title}`, 'success');
+          log(`   ID: ${data.taskId}`, 'success');
+          log(`   Status: ${data.columnId}`, 'success');
+          log('', 'info');
+          log('Full response:', 'info');
+          log(JSON.stringify(data, null, 2), 'info');
+        } else {
+          log(`❌ Error: ${data.error}`, 'error');
+        }
+
+      } catch (error) {
+        log(`❌ Failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function runFullTest() {
+      clearOutput();
+      log('🔄 Running full test suite...', 'info');
+      log('', 'info');
+
+      try {
+        const { apiToken, projectId } = getConfig();
+
+        // Test 1: List tasks
+        log('1️⃣ TEST: List tasks', 'info');
+        const listResponse = await fetch(`${BASE_URL}/api/projects/${projectId}/tasks`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const listData = await listResponse.json();
+        if (listResponse.ok) {
+          log(`   ✅ Listed ${listData.tasks.length} tasks`, 'success');
+        } else {
+          log(`   ❌ Failed: ${listData.error}`, 'error');
+          return;
+        }
+        log('', 'info');
+
+        // Test 2: Create task
+        log('2️⃣ TEST: Create task', 'info');
+        const createResponse = await fetch(`${BASE_URL}/api/projects/${projectId}/tasks`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: `Test ${Date.now()}`,
+            description: 'Full test suite',
+            status: 'backlog'
+          })
+        });
+        const createData = await createResponse.json();
+        if (createResponse.ok) {
+          log(`   ✅ Created task: ${createData.taskId}`, 'success');
+        } else {
+          log(`   ❌ Failed: ${createData.error}`, 'error');
+          return;
+        }
+        const taskId = createData.taskId;
+        log('', 'info');
+
+        // Test 3: Get single task
+        log('3️⃣ TEST: Get task', 'info');
+        const getResponse = await fetch(`${BASE_URL}/api/tasks/${taskId}`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const getData = await getResponse.json();
+        if (getResponse.ok) {
+          log(`   ✅ Retrieved: ${getData.title}`, 'success');
+        } else {
+          log(`   ❌ Failed: ${getData.error}`, 'error');
+        }
+        log('', 'info');
+
+        // Test 4: Update task
+        log('4️⃣ TEST: Update task', 'info');
+        const updateResponse = await fetch(`${BASE_URL}/api/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ description: 'Updated by test suite' })
+        });
+        const updateData = await updateResponse.json();
+        if (updateResponse.ok) {
+          log('   ✅ Task updated', 'success');
+        } else {
+          log(`   ❌ Failed: ${updateData.error}`, 'error');
+        }
+        log('', 'info');
+
+        // Test 5: Delete task
+        log('5️⃣ TEST: Delete task', 'info');
+        const deleteResponse = await fetch(`${BASE_URL}/api/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const deleteData = await deleteResponse.json();
+        if (deleteResponse.ok) {
+          log('   ✅ Task deleted', 'success');
+        } else {
+          log(`   ❌ Failed: ${deleteData.error}`, 'error');
+        }
+        log('', 'info');
+
+        log('🎉 All tests completed!', 'success');
+
+      } catch (error) {
+        log(`❌ Test suite failed: ${error.message}`, 'error');
+      }
+    }
+
+  </script>
+</body>
+</html>
