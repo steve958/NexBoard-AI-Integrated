@@ -76,7 +76,7 @@ class NexBoardClient {
    * @returns {Promise<Array>} Array of tasks
    */
   async getTasks(projectId) {
-    const data = await this._request('GET', '/api/tasks', null, { projectId });
+    const data = await this._request('GET', `/api/projects/${projectId}/tasks`);
     return data.tasks || [];
   }
 
@@ -94,7 +94,7 @@ class NexBoardClient {
    * @param {Object} taskData - Task data
    * @param {string} taskData.projectId - Project ID (required)
    * @param {string} taskData.title - Task title (required)
-   * @param {string} taskData.columnId - Column/status ID (required)
+   * @param {string} taskData.status - Column/status ID (optional, defaults to "backlog")
    * @param {string} [taskData.description] - Task description
    * @param {string} [taskData.assigneeId] - User ID to assign to
    * @param {string} [taskData.dueDate] - Due date (ISO 8601 format)
@@ -102,16 +102,15 @@ class NexBoardClient {
    * @returns {Promise<Object>} Created task object
    */
   async createTask(taskData) {
-    const { projectId, title, columnId, description, assigneeId, dueDate, parentTaskId } = taskData;
+    const { projectId, title, status, description, assigneeId, dueDate, parentTaskId } = taskData;
 
-    if (!projectId || !title || !columnId) {
-      throw new NexBoardError('Missing required fields: projectId, title, columnId', 400);
+    if (!projectId || !title) {
+      throw new NexBoardError('Missing required fields: projectId, title', 400);
     }
 
-    return await this._request('POST', '/api/tasks', {
-      projectId,
+    return await this._request('POST', `/api/projects/${projectId}/tasks`, {
       title,
-      columnId,
+      status,
       description,
       assigneeId,
       dueDate,

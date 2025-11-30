@@ -77,8 +77,8 @@
       <label>Project ID:</label>
       <input type="text" id="projectId" value="" placeholder="your-project-id">
 
-      <label>Column ID (for creating tasks):</label>
-      <input type="text" id="columnId" value="" placeholder="your-column-id">
+      <label>Column ID (optional - defaults to "backlog"):</label>
+      <input type="text" id="columnId" value="backlog" placeholder="backlog">
     </div>
 
     <h3>Actions</h3>
@@ -161,10 +161,10 @@
       try {
         const client = getClient();
         const projectId = document.getElementById('projectId').value;
-        const columnId = document.getElementById('columnId').value;
+        const columnId = document.getElementById('columnId').value || 'backlog';
 
-        if (!projectId || !columnId) {
-          log('❌ Please enter Project ID and Column ID', 'error');
+        if (!projectId) {
+          log('❌ Please enter Project ID', 'error');
           return;
         }
 
@@ -174,7 +174,7 @@
           projectId,
           title: 'Task from Browser',
           description: 'Created using the browser example at ' + new Date().toLocaleString(),
-          columnId,
+          status: columnId,
           dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         });
 
@@ -193,10 +193,10 @@
       try {
         const client = getClient();
         const projectId = document.getElementById('projectId').value;
-        const columnId = document.getElementById('columnId').value;
+        const columnId = document.getElementById('columnId').value || 'backlog';
 
-        if (!projectId || !columnId) {
-          log('❌ Please enter Project ID and Column ID', 'error');
+        if (!projectId) {
+          log('❌ Please enter Project ID', 'error');
           return;
         }
 
@@ -215,7 +215,7 @@
           projectId,
           title: 'Test Task ' + Date.now(),
           description: 'Testing all API methods',
-          columnId
+          status: columnId
         });
         log(`   Created: ${newTask.taskId}`, 'success');
         log('', 'info');

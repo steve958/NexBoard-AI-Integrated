@@ -40,7 +40,7 @@ async function main() {
       projectId: PROJECT_ID,
       title: 'Test task from Node.js',
       description: 'This task was created using the NexBoard API client',
-      columnId: 'your-column-id', // Replace with actual column ID
+      status: 'backlog', // Optional: defaults to "backlog" if not provided
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
     });
     console.log(`Created task: ${newTask.title} (${newTask.taskId})`);
