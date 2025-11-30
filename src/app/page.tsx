@@ -296,9 +296,9 @@ export default function HomePage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Total Boards</span>
+              <span className="text-sm font-medium opacity-80">Total Boards</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-teal)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
               </svg>
@@ -306,9 +306,9 @@ export default function HomePage() {
             <div className="text-3xl font-bold nb-brand-text">{analytics.totalBoards}</div>
           </div>
 
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Total Tasks</span>
+              <span className="text-sm font-medium opacity-80">Total Tasks</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
@@ -316,9 +316,9 @@ export default function HomePage() {
             <div className="text-3xl font-bold nb-brand-text">{analytics.totalTasks}</div>
           </div>
 
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Assigned to You</span>
+              <span className="text-sm font-medium opacity-80">Assigned to You</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-teal)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
@@ -326,22 +326,22 @@ export default function HomePage() {
             <div className="text-3xl font-bold nb-brand-text">{analytics.myTasksCount}</div>
           </div>
 
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Overdue</span>
+              <span className="text-sm font-medium opacity-80">Overdue</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-coral)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="text-3xl font-bold" style={{ color: 'var(--nb-coral)' }}>{analytics.overdueCount}</div>
+            <div className="text-3xl font-bold nb-brand-text">{analytics.overdueCount}</div>
           </div>
         </div>
 
         {/* Productivity Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Completed Today</span>
+              <span className="text-sm font-medium opacity-80">Completed Today</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-teal)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -349,9 +349,9 @@ export default function HomePage() {
             <div className="text-3xl font-bold nb-brand-text">{analytics.completedToday}</div>
           </div>
 
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Completed This Week</span>
+              <span className="text-sm font-medium opacity-80">Completed This Week</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
@@ -359,27 +359,27 @@ export default function HomePage() {
             <div className="text-3xl font-bold nb-brand-text">{analytics.completedThisWeek}</div>
           </div>
 
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Avg Per Day</span>
+              <span className="text-sm font-medium opacity-80">Avg Per Day</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-teal)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
             </div>
             <div className="text-3xl font-bold nb-brand-text">{analytics.avgPerDay}</div>
-            <div className="text-xs mt-1" style={{ color: 'color-mix(in srgb, var(--nb-ink) 50%, transparent)' }}>Last 7 days</div>
+            <div className="text-xs mt-1 opacity-70">Last 7 days</div>
           </div>
 
-          <div className="nb-card-elevated rounded-xl p-6">
+          <div className="nb-card-elevated nb-stat-card rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--nb-ink) 60%, transparent)' }}>Streak</span>
+              <span className="text-sm font-medium opacity-80">Streak</span>
               <svg className="h-5 w-5" style={{ color: 'var(--nb-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
               </svg>
             </div>
             <div className="text-3xl font-bold nb-brand-text">{analytics.streak}</div>
-            <div className="text-xs mt-1" style={{ color: 'color-mix(in srgb, var(--nb-ink) 50%, transparent)' }}>
+            <div className="text-xs mt-1 opacity-70">
               {analytics.streak === 1 ? 'day' : 'days'}
             </div>
           </div>

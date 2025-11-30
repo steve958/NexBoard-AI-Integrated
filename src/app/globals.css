@@ -26,6 +26,16 @@
   --nb-ring: #d99e2a;
 }
 
+/* Light theme stat cards */
+:root[data-theme="light"] .nb-stat-card {
+  background-color: #1B3F51;
+  color: #f4f1ea;
+}
+
+:root[data-theme="light"] .nb-stat-card .nb-brand-text {
+  color: #f4f1ea;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -89,6 +99,7 @@ body {
 .nb-btn-primary:hover { filter: brightness(0.95); }
 .nb-btn-secondary { border: 1px solid color-mix(in srgb, var(--nb-ink) 20%, transparent); }
 .nb-brand-text { color: var(--nb-ink); }
+.nb-stat-card { background-color: var(--nb-card); }
 .nb-chip-teal { background-color: color-mix(in srgb, var(--nb-teal) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-coral { background-color: color-mix(in srgb, var(--nb-coral) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-amber { background-color: color-mix(in srgb, var(--nb-accent) 20%, transparent); color: #1d1d1d; }
