@@ -13,6 +13,7 @@ export default function Header() {
   const pathname = usePathname();
   const [projectId, setProjectId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const { addToast } = useToast();
   const previousNotifsRef = useRef<Notification[]>([]);
@@ -65,14 +66,21 @@ export default function Header() {
 
   const unread = useMemo(() => notifs.filter((n) => !n.read), [notifs]);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 nb-surface">
-      <div className="mx-auto max-w-6xl px-3 sm:px-4 py-2 flex flex-col gap-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-6xl px-3 sm:px-4 h-14 flex items-center justify-between">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="NexBoard" width={28} height={28} className="rounded-md bg-white/5" />
-          <span className="font-semibold tracking-tight nb-brand-text">NexBoard</span>
+          <Image src="/logo.png" alt="NexBoard" width={80} height={80} className="rounded-md bg-white/5" />
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-3 text-sm relative flex-wrap justify-end sm:justify-start">
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-3 text-sm relative">
           {user && <Link href="/boards" className="hover:underline">Boards</Link>}
           {user && <Link href="/my-projects" className="hover:underline">My Projects</Link>}
           {user && <Link href="/my-tasks" className="hover:underline">My Tasks</Link>}
@@ -122,7 +130,120 @@ export default function Header() {
             <Link href="/login" className="h-9 px-3 rounded-md nb-btn-primary flex items-center">Sign in</Link>
           )}
         </nav>
+
+        {/* Mobile - Right Side Actions */}
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeToggle />
+          {user && projectId && (
+            <div className="relative">
+              <button onClick={() => setOpen((o) => !o)} className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
+                <span className="material-icons">notifications</span>
+                {unread.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(unread.length, 9)}{unread.length > 9 ? "+" : ""}</span>
+                )}
+              </button>
+              {open && (
+                <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto nb-card nb-shadow rounded-xl border border-white/10 z-50">
+                  <div className="px-3 py-2 text-xs opacity-70 border-b border-white/10 flex items-center justify-between">
+                    <span>Notifications</span>
+                    {unread.length > 0 && (
+                      <button
+                        onClick={async () => { await Promise.all(unread.map((n)=> markNotificationRead(projectId, n.notificationId))); }}
+                        className="underline hover:opacity-100 opacity-80"
+                      >Mark all as read</button>
+                    )}
+                  </div>
+                  <ul className="divide-y divide-white/10">
+                    {notifs.length === 0 && <li className="p-3 text-sm opacity-70">No notifications</li>}
+                    {notifs.map((n) => (
+                      <li key={n.notificationId} className={`p-3 ${!n.read ? "bg-white/5" : ""}`}>
+                        <div className="text-sm font-medium">{n.title || (n.type === "mention" ? "You were mentioned" : "Notification")}</div>
+                        {n.text && <div className="text-xs opacity-70 mt-1 line-clamp-3 whitespace-pre-wrap">{n.text}</div>}
+                        <div className="mt-2 flex items-center gap-2">
+                          {!n.read && (
+                            <button onClick={() => markNotificationRead(projectId, n.notificationId)} className="text-xs underline opacity-80 hover:opacity-100">Mark as read</button>
+                          )}
+                          <Link href={`/boards/${projectId}${n.taskId ? `?task=${n.taskId}` : ''}`} className="text-xs underline opacity-80 hover:opacity-100">{n.taskId ? 'Open task' : 'Open board'}</Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center"
+            aria-label="Menu"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {mobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-white/10 nb-surface">
+          <nav className="flex flex-col px-3 py-2 gap-1">
+            {user && (
+              <>
+                <Link
+                  href="/boards"
+                  className="px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                  style={{ color: 'var(--nb-ink)' }}
+                >
+                  Boards
+                </Link>
+                <Link
+                  href="/my-projects"
+                  className="px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                  style={{ color: 'var(--nb-ink)' }}
+                >
+                  My Projects
+                </Link>
+                <Link
+                  href="/my-tasks"
+                  className="px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                  style={{ color: 'var(--nb-ink)' }}
+                >
+                  My Tasks
+                </Link>
+                <Link
+                  href="/settings"
+                  className="px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                  style={{ color: 'var(--nb-ink)' }}
+                >
+                  Settings
+                </Link>
+                <div className="mt-2 pt-2 border-t border-white/10">
+                  <button
+                    onClick={signOutUser}
+                    className="w-full px-3 py-2 rounded-md nb-btn-secondary hover:bg-white/5 text-left"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+            {!user && (
+              <Link
+                href="/login"
+                className="px-3 py-2 rounded-md nb-btn-primary flex items-center justify-center"
+              >
+                Sign in
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
