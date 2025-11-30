@@ -24,7 +24,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME ?? "NexBoard",
   description: "NexBoard - Collaborative Kanban Board Application",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '64x64' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/logo.png',
+  },
 };
+
+
 
 export default function RootLayout({
   children,
