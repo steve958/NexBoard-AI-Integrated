@@ -7,6 +7,9 @@ import { usePathname } from "next/navigation";
 import { listenNotificationsForUser, markNotificationRead, type Notification } from "@/lib/notifications";
 import { useToast } from "@/components/ToastProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import { listenProjectsForUser, type Project } from "@/lib/projects";
+import { collection, query, where, orderBy, onSnapshot, limit } from "firebase/firestore";
+import { getDbClient } from "@/lib/firebase";
 
 export default function Header() {
   const { user, signOutUser } = useAuth();
@@ -15,6 +18,8 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [globalUnreadCount, setGlobalUnreadCount] = useState(0);
   const { addToast } = useToast();
   const previousNotifsRef = useRef<Notification[]>([]);
 
@@ -22,6 +27,43 @@ export default function Header() {
   if (pathname === "/login") {
     return null;
   }
+
+  // Listen to user's projects
+  useEffect(() => {
+    if (!user) return;
+    const unsub = listenProjectsForUser(user.uid, setProjects);
+    return () => unsub();
+  }, [user]);
+
+  // Listen to global unread count from all projects
+  useEffect(() => {
+    if (!user || projects.length === 0) {
+      setGlobalUnreadCount(0);
+      return;
+    }
+
+    const db = getDbClient();
+    const unsubscribers: (() => void)[] = [];
+    const projectCounts = new Map<string, number>();
+
+    projects.forEach((project) => {
+      const notifQuery = query(
+        collection(db, `projects/${project.projectId}/notifications`),
+        where("userId", "==", user.uid),
+        where("read", "==", false)
+      );
+
+      const unsub = onSnapshot(notifQuery, (snapshot) => {
+        projectCounts.set(project.projectId, snapshot.size);
+        const total = Array.from(projectCounts.values()).reduce((sum, count) => sum + count, 0);
+        setGlobalUnreadCount(total);
+      });
+
+      unsubscribers.push(unsub);
+    });
+
+    return () => unsubscribers.forEach((unsub) => unsub());
+  }, [user, projects]);
 
   useEffect(() => {
     // Derive projectId from URL when on /boards/[id]
@@ -86,15 +128,16 @@ export default function Header() {
           {user && <Link href="/my-tasks" className="hover:underline">My Tasks</Link>}
           {user && <Link href="/settings" className="hover:underline">Settings</Link>}
           <ThemeToggle />
-          {user && projectId && (
-            <div className="relative">
-              <button onClick={() => setOpen((o) => !o)} className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
-                <span className="material-icons">notifications</span>
-                {unread.length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(unread.length, 9)}{unread.length > 9 ? "+" : ""}</span>
-                )}
-              </button>
-              {open && (
+          {user && (
+            projectId ? (
+              <div className="relative">
+                <button onClick={() => setOpen((o) => !open)} className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
+                  <span className="material-icons">notifications</span>
+                  {unread.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(unread.length, 9)}{unread.length > 9 ? "+" : ""}</span>
+                  )}
+                </button>
+                {open && (
                 <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto nb-card nb-shadow rounded-xl border border-white/10 z-50">
                   <div className="px-3 py-2 text-xs opacity-70 border-b border-white/10 flex items-center justify-between">
                     <span>Notifications</span>
@@ -121,8 +164,16 @@ export default function Header() {
                     ))}
                   </ul>
                 </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/notifications" className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
+                <span className="material-icons">notifications</span>
+                {globalUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(globalUnreadCount, 9)}{globalUnreadCount > 9 ? "+" : ""}</span>
+                )}
+              </Link>
+            )
           )}
           {user ? (
             <button onClick={signOutUser} className="h-9 px-3 rounded-md nb-btn-secondary hover:bg-white/5">Sign out</button>
@@ -134,43 +185,52 @@ export default function Header() {
         {/* Mobile - Right Side Actions */}
         <div className="flex md:hidden items-center gap-2">
           <ThemeToggle />
-          {user && projectId && (
-            <div className="relative">
-              <button onClick={() => setOpen((o) => !o)} className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
-                <span className="material-icons">notifications</span>
-                {unread.length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(unread.length, 9)}{unread.length > 9 ? "+" : ""}</span>
-                )}
-              </button>
-              {open && (
-                <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto nb-card nb-shadow rounded-xl border border-white/10 z-50">
-                  <div className="px-3 py-2 text-xs opacity-70 border-b border-white/10 flex items-center justify-between">
-                    <span>Notifications</span>
-                    {unread.length > 0 && (
-                      <button
-                        onClick={async () => { await Promise.all(unread.map((n)=> markNotificationRead(projectId, n.notificationId))); }}
-                        className="underline hover:opacity-100 opacity-80"
-                      >Mark all as read</button>
-                    )}
+          {user && (
+            projectId ? (
+              <div className="relative">
+                <button onClick={() => setOpen((o) => !o)} className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
+                  <span className="material-icons">notifications</span>
+                  {unread.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(unread.length, 9)}{unread.length > 9 ? "+" : ""}</span>
+                  )}
+                </button>
+                {open && (
+                  <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto nb-card nb-shadow rounded-xl border border-white/10 z-50">
+                    <div className="px-3 py-2 text-xs opacity-70 border-b border-white/10 flex items-center justify-between">
+                      <span>Notifications</span>
+                      {unread.length > 0 && (
+                        <button
+                          onClick={async () => { await Promise.all(unread.map((n)=> markNotificationRead(projectId, n.notificationId))); }}
+                          className="underline hover:opacity-100 opacity-80"
+                        >Mark all as read</button>
+                      )}
+                    </div>
+                    <ul className="divide-y divide-white/10">
+                      {notifs.length === 0 && <li className="p-3 text-sm opacity-70">No notifications</li>}
+                      {notifs.map((n) => (
+                        <li key={n.notificationId} className={`p-3 ${!n.read ? "bg-white/5" : ""}`}>
+                          <div className="text-sm font-medium">{n.title || (n.type === "mention" ? "You were mentioned" : "Notification")}</div>
+                          {n.text && <div className="text-xs opacity-70 mt-1 line-clamp-3 whitespace-pre-wrap">{n.text}</div>}
+                          <div className="mt-2 flex items-center gap-2">
+                            {!n.read && (
+                              <button onClick={() => markNotificationRead(projectId, n.notificationId)} className="text-xs underline opacity-80 hover:opacity-100">Mark as read</button>
+                            )}
+                            <Link href={`/boards/${projectId}${n.taskId ? `?task=${n.taskId}` : ''}`} className="text-xs underline opacity-80 hover:opacity-100">{n.taskId ? 'Open task' : 'Open board'}</Link>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="divide-y divide-white/10">
-                    {notifs.length === 0 && <li className="p-3 text-sm opacity-70">No notifications</li>}
-                    {notifs.map((n) => (
-                      <li key={n.notificationId} className={`p-3 ${!n.read ? "bg-white/5" : ""}`}>
-                        <div className="text-sm font-medium">{n.title || (n.type === "mention" ? "You were mentioned" : "Notification")}</div>
-                        {n.text && <div className="text-xs opacity-70 mt-1 line-clamp-3 whitespace-pre-wrap">{n.text}</div>}
-                        <div className="mt-2 flex items-center gap-2">
-                          {!n.read && (
-                            <button onClick={() => markNotificationRead(projectId, n.notificationId)} className="text-xs underline opacity-80 hover:opacity-100">Mark as read</button>
-                          )}
-                          <Link href={`/boards/${projectId}${n.taskId ? `?task=${n.taskId}` : ''}`} className="text-xs underline opacity-80 hover:opacity-100">{n.taskId ? 'Open task' : 'Open board'}</Link>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/notifications" className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center" aria-label="Notifications">
+                <span className="material-icons">notifications</span>
+                {globalUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full nb-chip-coral text-[11px] flex items-center justify-center">{Math.min(globalUnreadCount, 9)}{globalUnreadCount > 9 ? "+" : ""}</span>
+                )}
+              </Link>
+            )
           )}
           {/* Hamburger Menu Button */}
           <button

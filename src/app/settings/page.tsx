@@ -5,6 +5,7 @@ import { createApiToken, listenUserApiTokens, revokeApiToken, getTokenStatus } f
 import type { ApiToken, TokenScope } from "@/lib/types";
 import { useToast } from "@/components/ToastProvider";
 import Modal from "@/components/Modal";
+import { getUserPreferences, updateUserPreferences, DEFAULT_PREFERENCES, type NotificationPreferences } from "@/lib/notificationPreferences";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -14,12 +15,19 @@ export default function SettingsPage() {
   const [creating, setCreating] = useState(false);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
     if (!user) return;
     const unsubscribe = listenUserApiTokens(user.uid, setTokens);
     return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    getUserPreferences(user.uid).then(setPreferences);
   }, [user]);
 
   const handleScopeToggle = (scope: TokenScope) => {
@@ -76,10 +84,133 @@ export default function SettingsPage() {
     addToast({ title: "Token copied to clipboard", kind: "success", duration: 2000 });
   };
 
+  const handleSavePreferences = async () => {
+    if (!user) return;
+
+    setSavingPreferences(true);
+    try {
+      await updateUserPreferences(user.uid, preferences);
+      addToast({ title: "Notification preferences saved", kind: "success" });
+    } catch (error) {
+      console.error("Failed to save preferences:", error);
+      addToast({ title: "Failed to save preferences", kind: "error" });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const handlePreferenceToggle = (key: keyof NotificationPreferences) => {
+    setPreferences((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6">
       <div className="mx-auto max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
+
+        {/* Notification Preferences Section */}
+        <section className="nb-card rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold">Notification Preferences</h2>
+              <p className="text-sm mt-1 opacity-70">
+                Control which notifications you receive
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Mentions */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+              <div>
+                <h3 className="font-medium">Mentions</h3>
+                <p className="text-sm mt-1 opacity-70">
+                  Notify me when someone mentions me in a comment
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={preferences.mentions}
+                  onChange={() => handlePreferenceToggle('mentions')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: preferences.mentions ? 'var(--nb-teal)' : 'color-mix(in srgb, var(--nb-ink) 20%, transparent)' }}></div>
+              </label>
+            </div>
+
+            {/* Assignments */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+              <div>
+                <h3 className="font-medium">Task Assignments</h3>
+                <p className="text-sm mt-1 opacity-70">
+                  Notify me when I'm assigned to a task
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={preferences.assignments}
+                  onChange={() => handlePreferenceToggle('assignments')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: preferences.assignments ? 'var(--nb-teal)' : 'color-mix(in srgb, var(--nb-ink) 20%, transparent)' }}></div>
+              </label>
+            </div>
+
+            {/* Comments */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+              <div>
+                <h3 className="font-medium">Comments</h3>
+                <p className="text-sm mt-1 opacity-70">
+                  Notify me when someone comments on my tasks
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={preferences.comments}
+                  onChange={() => handlePreferenceToggle('comments')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: preferences.comments ? 'var(--nb-teal)' : 'color-mix(in srgb, var(--nb-ink) 20%, transparent)' }}></div>
+              </label>
+            </div>
+
+            {/* Status Changes */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+              <div>
+                <h3 className="font-medium">Status Changes</h3>
+                <p className="text-sm mt-1 opacity-70">
+                  Notify me when my tasks are moved between columns
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={preferences.statusChanges}
+                  onChange={() => handlePreferenceToggle('statusChanges')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: preferences.statusChanges ? 'var(--nb-teal)' : 'color-mix(in srgb, var(--nb-ink) 20%, transparent)' }}></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleSavePreferences}
+              disabled={savingPreferences}
+              className="nb-btn-primary px-6 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingPreferences ? "Saving..." : "Save Preferences"}
+            </button>
+          </div>
+        </section>
 
         {/* API Tokens Section */}
         <section className="nb-card rounded-xl p-6 mb-6">

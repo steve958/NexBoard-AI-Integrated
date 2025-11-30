@@ -4,6 +4,8 @@ import { getDbClient } from "@/lib/firebase";
 import type { Project } from "@/lib/types";
 import { User } from "firebase/auth";
 
+export type { Project };
+
 const PROJECTS = "projects";
 
 export function listenProjectsForUser(userId: string, cb: (projects: Project[]) => void) {

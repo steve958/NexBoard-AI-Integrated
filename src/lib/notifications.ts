@@ -1,6 +1,7 @@
 "use client";
 import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, updateDoc, doc, where, type Timestamp } from "firebase/firestore";
 import { getDbClient } from "@/lib/firebase";
+import { shouldNotify } from "@/lib/notificationPreferences";
 
 export type Notification = {
   notificationId: string;
@@ -14,7 +15,24 @@ export type Notification = {
   createdAt?: Timestamp;
 };
 
+const notificationTypeMap = {
+  "mention": "mentions" as const,
+  "assignment": "assignments" as const,
+  "status-change": "statusChanges" as const,
+  "comment": "comments" as const,
+  "system": "mentions" as const, // System notifications always go through
+};
+
 export async function addNotification(projectId: string, data: Omit<Notification, "notificationId" | "projectId" | "createdAt" | "read">) {
+  // Check user preferences before creating notification
+  const preferenceKey = notificationTypeMap[data.type];
+  const allowed = await shouldNotify(data.userId, preferenceKey);
+
+  if (!allowed) {
+    // User has disabled this notification type
+    return;
+  }
+
   const db = getDbClient();
   await addDoc(collection(db, `projects/${projectId}/notifications`), {
     ...data,

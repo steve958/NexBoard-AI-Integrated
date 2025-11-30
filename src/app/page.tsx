@@ -94,10 +94,16 @@ export default function HomePage() {
     );
 
     const now = Date.now();
+
+    // Calculate today at midnight for consistent overdue logic
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
     const overdueTasks = myTasks.filter((t) => {
       if (!t.dueDate) return false;
       const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate).getTime();
-      if (due >= now) return false; // Not overdue
+      if (due >= todayTime) return false; // Not overdue (due today or later)
 
       // Exclude tasks from DONE columns
       const projectCols = projectColumns.find((pc) => pc.projectId === t.projectId);
@@ -134,9 +140,6 @@ export default function HomePage() {
         }));
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
     const yesterdayTime = todayTime - 24 * 60 * 60 * 1000;
     const sevenDaysAgo = todayTime - 7 * 24 * 60 * 60 * 1000;
     const thirtyDaysAgo = todayTime - 30 * 24 * 60 * 60 * 1000;
@@ -184,7 +187,7 @@ export default function HomePage() {
       if (streak > 365) break;
     }
 
-    // Upcoming tasks from TODO and IN PROGRESS columns only
+    // Upcoming tasks from TODO and IN PROGRESS columns only (assigned to current user)
     const upcomingTasks = allTasks
       .flatMap((p) => {
         const projectCols = projectColumns.find((pc) => pc.projectId === p.projectId);
@@ -198,6 +201,8 @@ export default function HomePage() {
 
         return p.tasks
           .filter((t) => {
+            // Must be assigned to current user
+            if (t.assigneeId !== user?.uid) return false;
             // Must have a due date
             if (!t.dueDate) return false;
             // Must NOT be in a DONE column
@@ -227,11 +232,11 @@ export default function HomePage() {
     const groupedUpcomingTasks = {
       overdue: upcomingTasks.filter((t) => {
         const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due < todayTime;
+        return due < todayTime; // Before today (midnight)
       }),
       today: upcomingTasks.filter((t) => {
         const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due >= todayTime && due < tomorrowTime;
+        return due >= todayTime && due < tomorrowTime; // Today (midnight to midnight)
       }),
       tomorrow: upcomingTasks.filter((t) => {
         const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
