@@ -10,6 +10,7 @@ import { getUserPreferences, updateUserPreferences, DEFAULT_PREFERENCES, type No
 export default function SettingsPage() {
   const { user } = useAuth();
   const [tokens, setTokens] = useState<ApiToken[]>([]);
+  const [tokensError, setTokensError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [scopes, setScopes] = useState<TokenScope[]>(["tasks:read"]);
   const [creating, setCreating] = useState(false);
@@ -21,7 +22,23 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = listenUserApiTokens(user.uid, setTokens);
+    const unsubscribe = listenUserApiTokens(
+      user.uid,
+      setTokens,
+      (error) => {
+        console.error("Token listener error:", error);
+        const errorMessage = error.message || "Unknown error";
+        if (errorMessage.includes("index")) {
+          setTokensError(
+            "Database index is being created. This may take a few minutes. Please refresh the page in a moment."
+          );
+        } else if (errorMessage.includes("permission")) {
+          setTokensError("Permission denied. Please check your account permissions.");
+        } else {
+          setTokensError(`Error loading tokens: ${errorMessage}`);
+        }
+      }
+    );
     return () => unsubscribe();
   }, [user]);
 
@@ -273,7 +290,11 @@ export default function SettingsPage() {
           {/* Tokens List */}
           <div>
             <h3 className="text-sm font-medium mb-3 opacity-80">Your Tokens</h3>
-            {tokens.length === 0 ? (
+            {tokensError ? (
+              <div className="p-4 rounded-lg bg-[var(--nb-coral)]/10 border border-[var(--nb-coral)]/20">
+                <p className="text-sm">⚠️ {tokensError}</p>
+              </div>
+            ) : tokens.length === 0 ? (
               <p className="text-sm opacity-60 text-center py-8">No API tokens yet. Create one above to get started.</p>
             ) : (
               <div className="overflow-x-auto">

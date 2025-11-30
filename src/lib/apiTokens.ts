@@ -51,7 +51,11 @@ export async function createApiToken(
 /**
  * Listen to all API tokens for a user
  */
-export function listenUserApiTokens(userId: string, callback: (tokens: ApiToken[]) => void): () => void {
+export function listenUserApiTokens(
+  userId: string,
+  callback: (tokens: ApiToken[]) => void,
+  onError?: (error: Error) => void
+): () => void {
   const db = getDbClient();
   const q = query(
     collection(db, "apiTokens"),
@@ -59,23 +63,32 @@ export function listenUserApiTokens(userId: string, callback: (tokens: ApiToken[
     orderBy("createdAt", "desc")
   );
 
-  return onSnapshot(q, (snapshot) => {
-    const tokens: ApiToken[] = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      tokens.push({
-        tokenId: doc.id,
-        userId: data.userId,
-        label: data.label,
-        scopes: data.scopes,
-        tokenHash: data.tokenHash,
-        salt: data.salt,
-        createdAt: data.createdAt,
-        revokedAt: data.revokedAt,
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const tokens: ApiToken[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        tokens.push({
+          tokenId: doc.id,
+          userId: data.userId,
+          label: data.label,
+          scopes: data.scopes,
+          tokenHash: data.tokenHash,
+          salt: data.salt,
+          createdAt: data.createdAt,
+          revokedAt: data.revokedAt,
+        });
       });
-    });
-    callback(tokens);
-  });
+      callback(tokens);
+    },
+    (error) => {
+      console.error("Error listening to API tokens:", error);
+      if (onError) {
+        onError(error as Error);
+      }
+    }
+  );
 }
 
 /**
