@@ -7,6 +7,7 @@ import type { Project, Column } from "@/lib/types";
 import type { Task } from "@/lib/taskTypes";
 import { collection, query, onSnapshot, Timestamp, orderBy } from "firebase/firestore";
 import { getDbClient } from "@/lib/firebase";
+import TaskStatisticsCalendar from "@/components/TaskStatisticsCalendar";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -383,6 +384,15 @@ export default function HomePage() {
               {analytics.streak === 1 ? 'day' : 'days'}
             </div>
           </div>
+        </div>
+
+        {/* Task Statistics Calendar */}
+        <div className="mb-8">
+          <TaskStatisticsCalendar
+            allTasks={allTasks}
+            projectColumns={projectColumns}
+            daysToShow={30}
+          />
         </div>
 
         {/* Main Content Grid */}
