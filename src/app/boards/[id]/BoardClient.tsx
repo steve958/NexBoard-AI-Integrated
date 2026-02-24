@@ -13,8 +13,10 @@ import type { TaskProject } from "@/lib/taskProjectTypes";
 import { listenUserTaskProjects } from "@/lib/taskProjects";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { listenTasksByColumn, listenAllSubtasks, createTask, updateTask, deleteTask, deleteTaskWithOrphans, computeNewOrder } from "@/lib/tasks";
-import TaskModal from "@/components/TaskModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import dynamic from "next/dynamic";
+
+const TaskModal = dynamic(() => import("@/components/TaskModal"), { ssr: false });
 import { useToast } from "@/components/ToastProvider";
 import { useDialog } from "@/components/DialogProvider";
 import Link from "next/link";

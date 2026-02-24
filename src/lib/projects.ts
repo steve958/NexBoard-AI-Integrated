@@ -56,22 +56,21 @@ export async function archiveProject(projectId: string) {
 export async function deleteProject(projectId: string) {
   const db = getDbClient();
 
-  console.log(`Starting deletion of project: ${projectId}`);
+  // Cascade-delete subcollections before removing the project document.
+  // Firestore doesn't auto-delete subcollections, so we do it explicitly.
+  const subcollections = ["tasks", "columns", "comments", "notifications"];
 
-  // Note: We skip deleting subcollections on the client side
-  // Firestore will keep orphaned subcollections, but they won't be accessible
-  // In production, use Cloud Functions to handle cascade deletes properly
-  // For now, just delete the project document - subcollections become inaccessible
+  for (const sub of subcollections) {
+    const snap = await getDocs(collection(db, `projects/${projectId}/${sub}`));
+    if (snap.empty) continue;
 
-  // Delete the project document
-  try {
-    console.log(`Deleting project document ${projectId}...`);
-    await deleteDoc(doc(db, PROJECTS, projectId));
-    console.log(`Successfully deleted project ${projectId}`);
-  } catch (error) {
-    console.error('Failed to delete project document:', error);
-    throw error;
+    // Firestore batches support max 500 ops. Chunk if needed.
+    const batch = writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
   }
+
+  await deleteDoc(doc(db, PROJECTS, projectId));
 }
 
 export async function addMemberByEmail(projectId: string, email: string) {

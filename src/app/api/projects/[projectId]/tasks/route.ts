@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, hasScope, isProjectMember, checkRateLimit } from "@/lib/apiAuth";
 import { getAdminDb } from "@/lib/apiAuthServer";
 import { midKey } from "@/lib/order";
+import type { Firestore } from "firebase-admin/firestore";
+
+/** Firestore document shape for a task (server-side). */
+interface TaskDocument {
+  title: string;
+  columnId: string;
+  order: string;
+  description?: string;
+  assigneeId?: string;
+  parentTaskId?: string;
+  dueDate?: FirebaseFirestore.Timestamp | null;
+  createdAt?: FirebaseFirestore.Timestamp | null;
+  updatedAt?: FirebaseFirestore.Timestamp | null;
+}
+
+interface TaskApiResponse {
+  taskId: string;
+  title: string;
+  columnId: string;
+  order: string;
+  description?: string;
+  assigneeId?: string | null;
+  parentTaskId?: string | null;
+  dueDate?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
 
 /**
  * GET /api/projects/[projectId]/tasks
@@ -47,37 +74,38 @@ export async function GET(
 
     // Build query
     const db = getAdminDb();
-    let query = db.collection("projects").doc(projectId).collection("tasks");
+    let ref: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
+      db.collection("projects").doc(projectId).collection("tasks");
 
     // Apply filters
     if (status) {
-      query = query.where("columnId", "==", status) as any;
+      ref = ref.where("columnId", "==", status);
     }
     if (assignee) {
-      query = query.where("assigneeId", "==", assignee) as any;
+      ref = ref.where("assigneeId", "==", assignee);
     }
 
     // Apply ordering and pagination
-    query = query.orderBy("order", "asc") as any;
+    ref = ref.orderBy("order", "asc");
 
     if (cursor) {
       const cursorDoc = await db.collection("projects").doc(projectId).collection("tasks").doc(cursor).get();
       if (cursorDoc.exists) {
-        query = query.startAfter(cursorDoc) as any;
+        ref = ref.startAfter(cursorDoc);
       }
     }
 
-    query = query.limit(limit + 1) as any; // Fetch one extra to check if there are more
+    ref = ref.limit(limit + 1); // Fetch one extra to check if there are more
 
     // Execute query
-    const snapshot = await query.get();
-    const tasks: any[] = [];
+    const snapshot = await ref.get();
+    const tasks: TaskApiResponse[] = [];
     let hasMore = false;
 
     let index = 0;
-    snapshot.forEach((doc: any) => {
+    snapshot.forEach((doc) => {
       if (index < limit) {
-        const data = doc.data();
+        const data = doc.data() as TaskDocument;
 
         // Apply client-side text search if provided (MVP: simple includes)
         if (q && !data.title?.toLowerCase().includes(q.toLowerCase())) {
@@ -87,9 +115,9 @@ export async function GET(
         tasks.push({
           taskId: doc.id,
           ...data,
-          createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
-          updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null,
-          dueDate: data.dueDate?.toDate?.()?.toISOString() || null,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+          dueDate: data.dueDate?.toDate?.()?.toISOString() ?? null,
         });
         index++;
       } else {
@@ -109,7 +137,7 @@ export async function GET(
     }
 
     // JSON format (default)
-    const response: any = {
+    const response = {
       tasks,
       pagination: {
         limit,
@@ -119,10 +147,10 @@ export async function GET(
     };
 
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET /api/projects/[projectId]/tasks error:", error);
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -171,7 +199,7 @@ export async function POST(
     }
 
     // Build task data
-    const taskData: any = {
+    const taskData: Record<string, unknown> = {
       title: title.trim(),
       columnId: status || "backlog", // Default to backlog if not specified
       order: midKey(),
@@ -203,10 +231,10 @@ export async function POST(
     };
 
     return NextResponse.json(createdTask, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/projects/[projectId]/tasks error:", error);
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

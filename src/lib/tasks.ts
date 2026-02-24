@@ -88,46 +88,37 @@ export function computeNewOrder(siblings: Task[], index: number): string {
   return between(prev, next);
 }
 
-// Count todo (non-done) tasks for a board
+// Count todo (non-done) tasks for a board.
+// Fetches columns + tasks in parallel to halve the round-trips.
 export async function countTodoTasksForBoard(projectId: string): Promise<number> {
   const db = getDbClient();
+  const { getDocs } = await import("firebase/firestore");
 
-  // Get all columns to find the "done" column
-  const columnsSnap = await (await import("firebase/firestore")).getDocs(
-    collection(db, `projects/${projectId}/columns`)
+  // Fire both reads concurrently
+  const [columnsSnap, tasksSnap] = await Promise.all([
+    getDocs(collection(db, `projects/${projectId}/columns`)),
+    getDocs(collection(db, `projects/${projectId}/tasks`)),
+  ]);
+
+  const doneColumnIds = new Set(
+    columnsSnap.docs
+      .filter(d => d.data().name?.toLowerCase().includes('done'))
+      .map(d => d.id)
   );
 
-  const doneColumnId = columnsSnap.docs
-    .find(doc => doc.data().name?.toLowerCase().includes('done'))?.id;
-
-  // Get all tasks
-  const tasksSnap = await (await import("firebase/firestore")).getDocs(
-    collection(db, `projects/${projectId}/tasks`)
-  );
-
-  // Count tasks that are NOT in the done column AND are NOT subtasks
   let count = 0;
-  tasksSnap.forEach(doc => {
-    const task = doc.data();
-    // Exclude subtasks (tasks with parentTaskId) and tasks in done column
-    if (!task.parentTaskId && (!doneColumnId || task.columnId !== doneColumnId)) {
-      count++;
-    }
+  tasksSnap.forEach(d => {
+    const task = d.data();
+    if (!task.parentTaskId && !doneColumnIds.has(task.columnId)) count++;
   });
 
   return count;
 }
 
-// Count todo tasks for multiple boards at once
+// Count todo tasks for multiple boards at once (all in parallel).
 export async function countTodoTasksForBoards(projectIds: string[]): Promise<Record<string, number>> {
-  const counts: Record<string, number> = {};
-
-  // Process boards in parallel for better performance
-  await Promise.all(
-    projectIds.map(async (projectId) => {
-      counts[projectId] = await countTodoTasksForBoard(projectId);
-    })
+  const entries = await Promise.all(
+    projectIds.map(async (id) => [id, await countTodoTasksForBoard(id)] as const)
   );
-
-  return counts;
+  return Object.fromEntries(entries);
 }

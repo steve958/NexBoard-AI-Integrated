@@ -1,51 +1,39 @@
 "use client";
-import { collection, addDoc, query, where, onSnapshot, updateDoc, doc, serverTimestamp, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, orderBy } from "firebase/firestore";
 import { getDbClient } from "@/lib/firebase";
+import { getAuthClient } from "@/lib/firebase";
 import type { ApiToken, TokenScope } from "@/lib/types";
-import { generateToken, generateSalt, hashToken } from "@/lib/crypto";
 
 /**
  * Create a new API token for a user
- * Returns the plain token value (show only once) and the token document ID
+ * Delegates hashing to a server-side API route so the pepper stays secret.
+ * Returns the plain token value (show only once) and the token document ID.
  */
 export async function createApiToken(
   userId: string,
   label: string,
   scopes: TokenScope[]
 ): Promise<{ token: string; tokenId: string }> {
-  const db = getDbClient();
+  // Get current user's Firebase ID token for server auth
+  const currentUser = getAuthClient().currentUser;
+  if (!currentUser) throw new Error("Not authenticated");
+  const idToken = await currentUser.getIdToken();
 
-  // Generate token and salt
-  const token = generateToken();
-  const salt = generateSalt();
+  const res = await fetch("/api/tokens", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ label, scopes }),
+  });
 
-  // Get pepper from environment (client-side for now, but should be server-side in production)
-  const pepper = process.env.NEXT_PUBLIC_API_TOKEN_PEPPER;
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to create token");
+  }
 
-  // Hash the token
-  const tokenHash = await hashToken(token, salt, pepper);
-
-  // Store prefix for faster lookup (first 12 characters including "nex_")
-  const tokenPrefix = token.substring(0, 12);
-
-  // Store in Firestore
-  const tokenData = {
-    userId,
-    label,
-    scopes,
-    tokenHash,
-    salt,
-    tokenPrefix, // For faster lookup in API auth
-    createdAt: serverTimestamp(),
-    revokedAt: null,
-  };
-
-  const docRef = await addDoc(collection(db, "apiTokens"), tokenData);
-
-  return {
-    token, // Return plain token - show once!
-    tokenId: docRef.id,
-  };
+  return res.json();
 }
 
 /**

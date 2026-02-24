@@ -31,8 +31,12 @@ service cloud.firestore {
       match /columns/{columnId} {
         allow read: if request.auth != null &&
           request.auth.uid in get(/databases/$(db)/documents/projects/$(projectId)).data.members;
-        // Allow any authenticated user to create columns (project-level security handles access)
-        allow create: if request.auth != null;
+        // Only project members with editor role or higher can create columns.
+        // During batch project creation the project doc doesn't exist yet, so
+        // we also allow if the project hasn't been committed (exists == false).
+        allow create: if request.auth != null &&
+          (!exists(/databases/$(db)/documents/projects/$(projectId)) ||
+           hasRole(get(/databases/$(db)/documents/projects/$(projectId)).data, request.auth.uid, 'editor'));
         // For update, user must have editor role
         allow update: if request.auth != null &&
           hasRole(get(/databases/$(db)/documents/projects/$(projectId)).data, request.auth.uid, 'editor');

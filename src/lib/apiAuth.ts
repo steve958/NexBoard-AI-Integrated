@@ -54,7 +54,7 @@ export async function authenticateRequest(authHeader: string | null): Promise<Au
           continue;
         }
 
-        const pepper = process.env.NEXT_PUBLIC_API_TOKEN_PEPPER;
+      const pepper = process.env.API_TOKEN_PEPPER;
         const isValid = await verifyToken(token, tokenData.tokenHash, tokenData.salt, pepper);
 
         if (isValid) {
@@ -79,7 +79,7 @@ export async function authenticateRequest(authHeader: string | null): Promise<Au
         continue;
       }
 
-      const pepper = process.env.NEXT_PUBLIC_API_TOKEN_PEPPER;
+      const pepper = process.env.API_TOKEN_PEPPER;
       const isValid = await verifyToken(token, tokenData.tokenHash, tokenData.salt, pepper);
 
       if (isValid) {
@@ -95,14 +95,9 @@ export async function authenticateRequest(authHeader: string | null): Promise<Au
     return { success: false, error: "Invalid token", status: 401 };
   } catch (error) {
     console.error("Token verification error:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      pepper: process.env.NEXT_PUBLIC_API_TOKEN_PEPPER ? "SET" : "NOT SET"
-    });
     return {
       success: false,
-      error: `Authentication failed: ${error instanceof Error ? error.message : String(error)}`,
+      error: "Authentication failed",
       status: 500
     };
   }

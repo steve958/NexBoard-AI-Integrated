@@ -5,8 +5,9 @@ import { useEffect, useState, useMemo } from "react";
 import { listenProjectsForUser, createProject } from "@/lib/projects";
 import type { Project, Column } from "@/lib/types";
 import type { Task } from "@/lib/taskTypes";
-import { collection, query, onSnapshot, Timestamp, orderBy } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import { getDbClient } from "@/lib/firebase";
+import { dueDateToMillis, formatDueDate, formatDueDateLong } from "@/lib/dates";
 import TaskStatisticsCalendar from "@/components/TaskStatisticsCalendar";
 
 export default function HomePage() {
@@ -103,7 +104,7 @@ export default function HomePage() {
 
     const overdueTasks = myTasks.filter((t) => {
       if (!t.dueDate) return false;
-      const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate).getTime();
+      const due = dueDateToMillis(t.dueDate);
       if (due >= todayTime) return false; // Not overdue (due today or later)
 
       // Exclude tasks from DONE columns
@@ -137,7 +138,7 @@ export default function HomePage() {
           ...t,
           projectName: p.projectName,
           projectId: p.projectId,
-          completedAt: t.updatedAt instanceof Timestamp ? t.updatedAt.toMillis() : (t.updatedAt ? new Date(t.updatedAt).getTime() : now)
+          completedAt: dueDateToMillis(t.updatedAt) || now
         }));
     });
 
@@ -209,21 +210,13 @@ export default function HomePage() {
             // Must NOT be in a DONE column
             if (doneColumnIds.has(t.columnId)) return false;
             // Must be due within next 14 days
-            const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate).getTime();
+            const due = dueDateToMillis(t.dueDate);
             const fourteenDaysFromNow = now + 14 * 24 * 60 * 60 * 1000;
             return due <= fourteenDaysFromNow;
           })
           .map((t) => ({ ...t, projectName: p.projectName, projectId: p.projectId }));
       })
-      .sort((a, b) => {
-        const aTime = a.dueDate instanceof Timestamp
-          ? a.dueDate.toMillis()
-          : new Date(a.dueDate as string | number | Date).getTime();
-        const bTime = b.dueDate instanceof Timestamp
-          ? b.dueDate.toMillis()
-          : new Date(b.dueDate as string | number | Date).getTime();
-        return aTime - bTime;
-      });
+      .sort((a, b) => dueDateToMillis(a.dueDate) - dueDateToMillis(b.dueDate));
 
     // Group upcoming tasks by time period
     const tomorrowTime = todayTime + 24 * 60 * 60 * 1000;
@@ -231,26 +224,11 @@ export default function HomePage() {
     const nextWeekEndTime = todayTime + 14 * 24 * 60 * 60 * 1000;
 
     const groupedUpcomingTasks = {
-      overdue: upcomingTasks.filter((t) => {
-        const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due < todayTime; // Before today (midnight)
-      }),
-      today: upcomingTasks.filter((t) => {
-        const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due >= todayTime && due < tomorrowTime; // Today (midnight to midnight)
-      }),
-      tomorrow: upcomingTasks.filter((t) => {
-        const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due >= tomorrowTime && due < tomorrowTime + 24 * 60 * 60 * 1000;
-      }),
-      thisWeek: upcomingTasks.filter((t) => {
-        const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due >= tomorrowTime + 24 * 60 * 60 * 1000 && due < thisWeekEndTime;
-      }),
-      nextWeek: upcomingTasks.filter((t) => {
-        const due = t.dueDate instanceof Timestamp ? t.dueDate.toMillis() : new Date(t.dueDate as string | number | Date).getTime();
-        return due >= thisWeekEndTime && due < nextWeekEndTime;
-      }),
+      overdue: upcomingTasks.filter((t) => dueDateToMillis(t.dueDate) < todayTime),
+      today: upcomingTasks.filter((t) => { const d = dueDateToMillis(t.dueDate); return d >= todayTime && d < tomorrowTime; }),
+      tomorrow: upcomingTasks.filter((t) => { const d = dueDateToMillis(t.dueDate); return d >= tomorrowTime && d < tomorrowTime + 24 * 60 * 60 * 1000; }),
+      thisWeek: upcomingTasks.filter((t) => { const d = dueDateToMillis(t.dueDate); return d >= tomorrowTime + 24 * 60 * 60 * 1000 && d < thisWeekEndTime; }),
+      nextWeek: upcomingTasks.filter((t) => { const d = dueDateToMillis(t.dueDate); return d >= thisWeekEndTime && d < nextWeekEndTime; }),
     };
 
     return {
@@ -474,9 +452,7 @@ export default function HomePage() {
                               </div>
                             </div>
                             <div className="text-xs px-2 py-1 rounded whitespace-nowrap ml-3" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-coral) 20%, transparent)', color: 'var(--nb-coral)' }}>
-                              {task.dueDate instanceof Timestamp
-                                ? new Date(task.dueDate.toMillis()).toLocaleDateString()
-                                : new Date(task.dueDate as string | number | Date).toLocaleDateString()}
+                              {formatDueDate(task.dueDate)}
                             </div>
                           </Link>
                         ))}
@@ -590,9 +566,7 @@ export default function HomePage() {
                               </div>
                             </div>
                             <div className="text-xs px-2 py-1 rounded whitespace-nowrap ml-3" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 10%, transparent)', color: 'var(--nb-ink)' }}>
-                              {task.dueDate instanceof Timestamp
-                                ? new Date(task.dueDate.toMillis()).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-                                : new Date(task.dueDate as string | number | Date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                              {formatDueDateLong(task.dueDate)}
                             </div>
                           </Link>
                         ))}
@@ -630,9 +604,7 @@ export default function HomePage() {
                               </div>
                             </div>
                             <div className="text-xs px-2 py-1 rounded whitespace-nowrap ml-3" style={{ backgroundColor: 'color-mix(in srgb, var(--nb-ink) 10%, transparent)', color: 'var(--nb-ink)' }}>
-                              {task.dueDate instanceof Timestamp
-                                ? new Date(task.dueDate.toMillis()).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-                                : new Date(task.dueDate as string | number | Date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                              {formatDueDateLong(task.dueDate)}
                             </div>
                           </Link>
                         ))}
@@ -744,9 +716,7 @@ export default function HomePage() {
                 <div className="space-y-2">
                   {analytics.myTasks.map((task) => {
                     const isOverdue = task.dueDate
-                      ? (task.dueDate instanceof Timestamp
-                          ? task.dueDate.toMillis()
-                          : new Date(task.dueDate).getTime()) < Date.now()
+                      ? dueDateToMillis(task.dueDate) < Date.now()
                       : false;
 
                     return (
@@ -780,9 +750,7 @@ export default function HomePage() {
                                 : undefined
                             }
                           >
-                            {task.dueDate instanceof Timestamp
-                              ? new Date(task.dueDate.toMillis()).toLocaleDateString()
-                              : new Date(task.dueDate).toLocaleDateString()}
+                            {formatDueDate(task.dueDate)}
                           </div>
                         )}
                       </Link>

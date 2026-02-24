@@ -104,6 +104,10 @@ body {
 .nb-chip-coral { background-color: color-mix(in srgb, var(--nb-coral) 20%, transparent); color: var(--nb-ink); }
 .nb-chip-amber { background-color: color-mix(in srgb, var(--nb-accent) 20%, transparent); color: #1d1d1d; }
 
+/* Hover card — uses a CSS custom property for the hover background */
+.nb-hover-card { background-color: transparent; }
+.nb-hover-card:hover { background-color: var(--nb-hover-bg, color-mix(in srgb, var(--nb-ink) 5%, transparent)); }
+
 /* Form inputs and selects - theme aware */
 select option {
   background-color: var(--nb-card);

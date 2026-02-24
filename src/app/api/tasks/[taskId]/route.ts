@@ -67,10 +67,10 @@ export async function GET(
     };
 
     return NextResponse.json(task);
-  } catch (error: any) {
+  } catch (error) {
     console.error("GET /api/tasks/[taskId] error:", error);
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -141,7 +141,7 @@ export async function PATCH(
     }
 
     // Build update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
 
@@ -196,10 +196,10 @@ export async function PATCH(
     };
 
     return NextResponse.json(updatedTask);
-  } catch (error: any) {
+  } catch (error) {
     console.error("PATCH /api/tasks/[taskId] error:", error);
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -262,10 +262,10 @@ export async function DELETE(
     await taskDoc.ref.delete();
 
     return NextResponse.json({ success: true, message: "Task deleted successfully" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("DELETE /api/tasks/[taskId] error:", error);
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
