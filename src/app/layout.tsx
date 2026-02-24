@@ -6,10 +6,8 @@ import { AuthProvider } from "@/lib/auth";
 import { Protected } from "@/components/Protected";
 import Header from "@/components/Header";
 import ToastProvider from "@/components/ToastProvider";
-import dynamic from "next/dynamic";
-
-const CommandPalette = dynamic(() => import("@/components/CommandPalette"), { ssr: false });
-const HelpOverlay = dynamic(() => import("@/components/HelpOverlay"), { ssr: false });
+import CommandPalette from "@/components/CommandPalette";
+import HelpOverlay from "@/components/HelpOverlay";
 import ThemeProvider from "@/components/ThemeProvider";
 import { DialogProvider } from "@/components/DialogProvider";
 
