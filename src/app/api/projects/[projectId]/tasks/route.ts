@@ -199,19 +199,23 @@ export async function POST(
     }
 
     // Build task data
+    const now = new Date();
+    let parsedDueDate: Date | null = null;
+
     const taskData: Record<string, unknown> = {
       title: title.trim(),
       columnId: status || "backlog", // Default to backlog if not specified
       order: midKey(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     if (description) taskData.description = description;
     if (assigneeId) taskData.assigneeId = assigneeId;
     if (dueDate) {
       try {
-        taskData.dueDate = new Date(dueDate);
+        parsedDueDate = new Date(dueDate);
+        taskData.dueDate = parsedDueDate;
       } catch (e) {
         return NextResponse.json({ error: "Invalid dueDate format" }, { status: 400 });
       }
@@ -225,9 +229,9 @@ export async function POST(
     const createdTask = {
       taskId: taskRef.id,
       ...taskData,
-      createdAt: taskData.createdAt.toISOString(),
-      updatedAt: taskData.updatedAt.toISOString(),
-      dueDate: taskData.dueDate?.toISOString() || null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      dueDate: parsedDueDate?.toISOString() || null,
     };
 
     return NextResponse.json(createdTask, { status: 201 });
