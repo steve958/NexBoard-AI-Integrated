@@ -130,7 +130,7 @@ export async function PATCH(
 
     // Parse request body
     const body = await request.json();
-    const { title, description, status, columnId: columnIdField, assigneeId, dueDate, order, priority, taskType, estimation } = body;
+    const { title, description, status, columnId: columnIdField, assigneeId, dueDate, order, priority, taskType, estimation, projectId: taskProjectId } = body;
 
     const db = getAdminDb();
     const projectIdParam = request.nextUrl.searchParams.get("projectId");
@@ -212,6 +212,10 @@ export async function PATCH(
 
     if (estimation !== undefined) {
       updateData.estimation = estimation;
+    }
+
+    if (taskProjectId !== undefined) {
+      updateData.projectId = taskProjectId;
     }
 
     // Update task
