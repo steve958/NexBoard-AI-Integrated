@@ -7,6 +7,20 @@ import { useToast } from "@/components/ToastProvider";
 import Modal from "@/components/Modal";
 import { getUserPreferences, updateUserPreferences, DEFAULT_PREFERENCES, type NotificationPreferences } from "@/lib/notificationPreferences";
 
+function CodeBlock({ code, onCopy }: { code: string; onCopy: (text: string) => void }) {
+  return (
+    <div className="relative group">
+      <pre className="p-3 rounded-lg bg-white/5 border border-white/10 font-mono text-xs overflow-x-auto whitespace-pre">{code}</pre>
+      <button
+        onClick={() => onCopy(code)}
+        className="absolute top-2 right-2 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity bg-white/10"
+      >
+        Copy
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -19,6 +33,8 @@ export default function SettingsPage() {
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const { addToast } = useToast();
+  const [integrationTab, setIntegrationTab] = useState<"warp" | "cursor" | "terminal">("warp");
+  const [baseUrl, setBaseUrl] = useState("https://your-nexboard.vercel.app");
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +62,10 @@ export default function SettingsPage() {
     if (!user) return;
     getUserPreferences(user.uid).then(setPreferences);
   }, [user]);
+
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
 
   const handleScopeToggle = (scope: TokenScope) => {
     setScopes((prev) =>
@@ -355,6 +375,249 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </section>
+
+        {/* Developer Integrations Section */}
+        <section className="nb-card rounded-xl p-6 mb-6">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold">Developer Integrations</h2>
+            <p className="text-sm mt-1 opacity-70">
+              Manage tasks from your terminal or editor using the NexBoard REST API.
+            </p>
+          </div>
+
+          {/* Tab switcher */}
+          <div className="flex gap-1 mb-6 p-1 rounded-lg bg-white/5 border border-white/10 w-fit">
+            {(["warp", "cursor", "terminal"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setIntegrationTab(tab)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  integrationTab === tab ? "nb-btn-primary" : "opacity-60 hover:opacity-100"
+                }`}
+              >
+                {tab === "warp" ? "Warp" : tab === "cursor" ? "Cursor" : "Terminal / curl"}
+              </button>
+            ))}
+          </div>
+
+          {/* Warp */}
+          {integrationTab === "warp" && (
+            <div className="space-y-6">
+              <p className="text-sm opacity-70">
+                Use NexBoard directly from Warp. The{" "}
+                <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">?format=text</code>{" "}
+                flag returns output optimized for terminal reading and scripting.
+              </p>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">1. Create an API token</p>
+                <p className="text-sm opacity-70">
+                  Use the <strong>Personal API Tokens</strong> section above. Select{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">tasks:read</code>{" "}
+                  to list tasks, or also enable{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">tasks:write</code>{" "}
+                  to create and update them.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">2. Export your token</p>
+                <p className="text-sm opacity-70 mb-2">
+                  Add this to your{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">~/.zshrc</code>{" "}
+                  or{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">~/.bashrc</code>{" "}
+                  so it persists across sessions:
+                </p>
+                <CodeBlock code={`export NEXBOARD_TOKEN="nex_your_token_here"`} onCopy={copyToClipboard} />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">3. Find your Project ID</p>
+                <p className="text-sm opacity-70">
+                  Open any board — the URL contains{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">/boards/YOUR_PROJECT_ID</code>.
+                  Copy that segment to use in the commands below.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">4. List your tasks</p>
+                <CodeBlock
+                  code={`curl "${baseUrl}/api/projects/YOUR_PROJECT_ID/tasks?format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-3">Quick reference</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Filter by status column</p>
+                    <CodeBlock
+                      code={`curl "${baseUrl}/api/projects/PROJECT_ID/tasks?status=COLUMN_ID&format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                      onCopy={copyToClipboard}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Search tasks</p>
+                    <CodeBlock
+                      code={`curl "${baseUrl}/api/projects/PROJECT_ID/tasks?q=bug&format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                      onCopy={copyToClipboard}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Create a task</p>
+                    <CodeBlock
+                      code={`curl -X POST "${baseUrl}/api/projects/PROJECT_ID/tasks?format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"title":"My new task","columnId":"COLUMN_ID"}'`}
+                      onCopy={copyToClipboard}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Move a task to another column</p>
+                    <CodeBlock
+                      code={`curl -X PATCH "${baseUrl}/api/tasks/TASK_ID?format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"status":"COLUMN_ID"}'`}
+                      onCopy={copyToClipboard}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cursor */}
+          {integrationTab === "cursor" && (
+            <div className="space-y-6">
+              <p className="text-sm opacity-70">
+                Give Cursor AI persistent context about your NexBoard workspace so it can help you manage tasks without leaving your editor.
+              </p>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">1. Create an API token</p>
+                <p className="text-sm opacity-70">
+                  Use the <strong>Personal API Tokens</strong> section above with both{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">tasks:read</code>{" "}
+                  and{" "}
+                  <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">tasks:write</code>{" "}
+                  scopes.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">2. Set your token in your shell</p>
+                <CodeBlock code={`export NEXBOARD_TOKEN="nex_your_token_here"`} onCopy={copyToClipboard} />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-2">
+                  3. Create a{" "}
+                  <code className="font-mono font-normal text-xs px-1 py-0.5 rounded bg-white/10">.cursorrules</code>{" "}
+                  file in your project root
+                </p>
+                <p className="text-sm opacity-70 mb-2">
+                  This gives Cursor AI persistent knowledge of the NexBoard API. You can also paste this into{" "}
+                  <strong>Cursor Settings → Rules for AI</strong>.
+                </p>
+                <CodeBlock
+                  code={`# NexBoard Integration\nBase URL: ${baseUrl}\nAuth header: Authorization: Bearer $NEXBOARD_TOKEN\n\nAvailable endpoints:\n  List tasks:   GET    ${baseUrl}/api/projects/{projectId}/tasks\n  Get task:     GET    ${baseUrl}/api/tasks/{taskId}\n  Create task:  POST   ${baseUrl}/api/projects/{projectId}/tasks\n  Update task:  PATCH  ${baseUrl}/api/tasks/{taskId}\n  Delete task:  DELETE ${baseUrl}/api/tasks/{taskId}\n\nQuery params: ?format=text (terminal output), ?status=COLUMN_ID, ?assignee=USER_ID, ?q=search\nCreate/update body fields: title, columnId, description, assigneeId, dueDate (ISO 8601)\nUpdate note: "status" field maps to columnId internally.\n\nFind Project ID: open any board — URL is /boards/{projectId}\nFind Column IDs: inspect network requests on a board page`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold mb-3">4. Example Cursor chat prompts</p>
+                <div className="space-y-2">
+                  {[
+                    `List all open tasks in project PROJECT_ID`,
+                    `Create a task "Fix login bug" in the Todo column of project PROJECT_ID`,
+                    `Move task TASK_ID to the Done column`,
+                    `Show me the full details of task TASK_ID`,
+                    `Delete task TASK_ID`,
+                  ].map((prompt) => (
+                    <div
+                      key={prompt}
+                      className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10"
+                    >
+                      <code className="text-sm font-mono opacity-80 break-all">{prompt}</code>
+                      <button
+                        onClick={() => copyToClipboard(prompt)}
+                        className="text-xs opacity-50 hover:opacity-100 ml-4 shrink-0"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Terminal / curl */}
+          {integrationTab === "terminal" && (
+            <div className="space-y-5">
+              <p className="text-sm opacity-70">
+                Full curl reference for any terminal. Set your token as an environment variable first, then substitute <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">PROJECT_ID</code>, <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">TASK_ID</code>, and <code className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">COLUMN_ID</code> with values from your board URLs.
+              </p>
+
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Set token</p>
+                <CodeBlock code={`export NEXBOARD_TOKEN="nex_your_token_here"`} onCopy={copyToClipboard} />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">List tasks (readable)</p>
+                <CodeBlock
+                  code={`curl "${baseUrl}/api/projects/PROJECT_ID/tasks?format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">List tasks (JSON)</p>
+                <CodeBlock
+                  code={`curl "${baseUrl}/api/projects/PROJECT_ID/tasks" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Filter by status / assignee / search</p>
+                <CodeBlock
+                  code={`curl "${baseUrl}/api/projects/PROJECT_ID/tasks?status=COLUMN_ID&assignee=USER_ID&q=bug&format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Get single task</p>
+                <CodeBlock
+                  code={`curl "${baseUrl}/api/tasks/TASK_ID?format=text" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Create task</p>
+                <CodeBlock
+                  code={`curl -X POST "${baseUrl}/api/projects/PROJECT_ID/tasks" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "title": "Task title",\n    "columnId": "COLUMN_ID",\n    "description": "Optional description",\n    "assigneeId": "USER_ID",\n    "dueDate": "2026-03-01T00:00:00Z"\n  }'`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Update task</p>
+                <CodeBlock
+                  code={`curl -X PATCH "${baseUrl}/api/tasks/TASK_ID" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"title": "New title", "status": "COLUMN_ID"}'`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div>
+                <p className="text-xs opacity-50 mb-1 uppercase tracking-wide">Delete task</p>
+                <CodeBlock
+                  code={`curl -X DELETE "${baseUrl}/api/tasks/TASK_ID" \\\n  -H "Authorization: Bearer $NEXBOARD_TOKEN"`}
+                  onCopy={copyToClipboard}
+                />
+              </div>
+              <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-sm opacity-70">
+                <strong>Rate limit:</strong> 300 requests/hour per token.
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Warning */}
