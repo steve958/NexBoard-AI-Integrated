@@ -75,14 +75,14 @@ export async function GET(
         if (columnDoc.exists) statusLabel = (columnDoc.data()?.name as string) || columnId;
       }
       const lines = [
-        `${task.title} (${task.taskId})`,
+        `${taskData?.title ?? ""} (${task.taskId})`,
         `  Status:   ${statusLabel}`,
-        `  Assignee: ${task.assigneeId || "-"}`,
-        `  Due:      ${task.dueDate ? (task.dueDate as string).split("T")[0] : "-"}`,
-        `  Created:  ${task.createdAt ? (task.createdAt as string).split("T")[0] : "-"}`,
-        `  Updated:  ${task.updatedAt ? (task.updatedAt as string).split("T")[0] : "-"}`,
+        `  Assignee: ${taskData?.assigneeId ?? "-"}`,
+        `  Due:      ${task.dueDate ? String(task.dueDate).split("T")[0] : "-"}`,
+        `  Created:  ${task.createdAt ? String(task.createdAt).split("T")[0] : "-"}`,
+        `  Updated:  ${task.updatedAt ? String(task.updatedAt).split("T")[0] : "-"}`,
       ];
-      if (task.description) lines.push("", `  ${task.description}`);
+      if (taskData?.description) lines.push("", `  ${taskData.description}`);
       return new NextResponse(lines.join("\n"), { headers: { "Content-Type": "text/plain" } });
     }
 
@@ -217,7 +217,7 @@ export async function PATCH(
 
     const patchFormat = request.nextUrl.searchParams.get("format");
     if (patchFormat === "text") {
-      return new NextResponse(`Updated: ${updatedTask.title} (${updatedTask.taskId})`, {
+      return new NextResponse(`Updated: ${updatedData?.title ?? ""} (${updatedTask.taskId})`, {
         headers: { "Content-Type": "text/plain" },
       });
     }
