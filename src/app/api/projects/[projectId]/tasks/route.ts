@@ -213,7 +213,7 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { title, description, status, columnId: columnIdField, assigneeId, dueDate, parentTaskId } = body;
+    const { title, description, status, columnId: columnIdField, assigneeId, dueDate, parentTaskId, priority, taskType, estimation, projectId: taskProjectId } = body;
     const resolvedColumnId = columnIdField || status;
 
     // Validate required fields
@@ -222,6 +222,20 @@ export async function POST(
     }
     if (!resolvedColumnId || typeof resolvedColumnId !== "string") {
       return NextResponse.json({ error: "columnId (or status) is required" }, { status: 400 });
+    }
+
+    const validPriorities = ["low", "medium", "high", "urgent"];
+    if (priority !== undefined && !validPriorities.includes(priority)) {
+      return NextResponse.json({ error: "priority must be one of: low, medium, high, urgent" }, { status: 400 });
+    }
+
+    const validTaskTypes = ["BUG", "FEATURE", "TEST"];
+    if (taskType !== undefined && !validTaskTypes.includes(taskType)) {
+      return NextResponse.json({ error: "taskType must be one of: BUG, FEATURE, TEST" }, { status: 400 });
+    }
+
+    if (estimation !== undefined && (typeof estimation !== "number" || estimation <= 0)) {
+      return NextResponse.json({ error: "estimation must be a positive number (hours)" }, { status: 400 });
     }
 
     // Build task data
@@ -238,6 +252,10 @@ export async function POST(
 
     if (description) taskData.description = description;
     if (assigneeId) taskData.assigneeId = assigneeId;
+    if (priority) taskData.priority = priority;
+    if (taskType) taskData.taskType = taskType;
+    if (estimation) taskData.estimation = estimation;
+    if (taskProjectId) taskData.projectId = taskProjectId;
     if (dueDate) {
       try {
         parsedDueDate = new Date(dueDate);
