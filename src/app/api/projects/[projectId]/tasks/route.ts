@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, hasScope, isProjectMember, checkRateLimit } from "@/lib/apiAuth";
 import { getAdminDb } from "@/lib/apiAuthServer";
 import { midKey } from "@/lib/order";
-import type { Firestore } from "firebase-admin/firestore";
 
 /** Firestore document shape for a task (server-side). */
 interface TaskDocument {
@@ -259,7 +258,7 @@ export async function POST(
 
     const postFormat = request.nextUrl.searchParams.get("format");
     if (postFormat === "text") {
-      return new NextResponse(`Created: ${createdTask.title} (${taskRef.id})`, {
+      return new NextResponse(`Created: ${title.trim()} (${taskRef.id})`, {
         status: 201,
         headers: { "Content-Type": "text/plain" },
       });
