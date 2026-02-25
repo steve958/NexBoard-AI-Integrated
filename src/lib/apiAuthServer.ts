@@ -15,8 +15,8 @@ export function getAdminApp(): App {
     if (apps.length === 0) {
       // Check if we have admin credentials
       const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-      const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-      const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+      const clientEmail = process.env.FIRESTORE_ADMIN_CLIENT_EMAIL;
+      const privateKey = process.env.FIRESTORE_ADMIN_PRIVATE_KEY;
 
       if (!projectId) {
         throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID not configured");
