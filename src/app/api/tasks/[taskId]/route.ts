@@ -66,6 +66,26 @@ export async function GET(
       dueDate: taskData?.dueDate?.toDate?.()?.toISOString() || null,
     };
 
+    const getFormat = request.nextUrl.searchParams.get("format");
+    if (getFormat === "text") {
+      const columnId = taskData?.columnId as string | undefined;
+      let statusLabel = columnId || "-";
+      if (columnId) {
+        const columnDoc = await db.collection("projects").doc(projectId).collection("columns").doc(columnId).get();
+        if (columnDoc.exists) statusLabel = (columnDoc.data()?.name as string) || columnId;
+      }
+      const lines = [
+        `${task.title} (${task.taskId})`,
+        `  Status:   ${statusLabel}`,
+        `  Assignee: ${task.assigneeId || "-"}`,
+        `  Due:      ${task.dueDate ? (task.dueDate as string).split("T")[0] : "-"}`,
+        `  Created:  ${task.createdAt ? (task.createdAt as string).split("T")[0] : "-"}`,
+        `  Updated:  ${task.updatedAt ? (task.updatedAt as string).split("T")[0] : "-"}`,
+      ];
+      if (task.description) lines.push("", `  ${task.description}`);
+      return new NextResponse(lines.join("\n"), { headers: { "Content-Type": "text/plain" } });
+    }
+
     return NextResponse.json(task);
   } catch (error) {
     console.error("GET /api/tasks/[taskId] error:", error);
@@ -195,6 +215,13 @@ export async function PATCH(
       dueDate: updatedData?.dueDate?.toDate?.()?.toISOString() || null,
     };
 
+    const patchFormat = request.nextUrl.searchParams.get("format");
+    if (patchFormat === "text") {
+      return new NextResponse(`Updated: ${updatedTask.title} (${updatedTask.taskId})`, {
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
     return NextResponse.json(updatedTask);
   } catch (error) {
     console.error("PATCH /api/tasks/[taskId] error:", error);
@@ -260,6 +287,11 @@ export async function DELETE(
 
     // Delete the task
     await taskDoc.ref.delete();
+
+    const deleteFormat = request.nextUrl.searchParams.get("format");
+    if (deleteFormat === "text") {
+      return new NextResponse(`Deleted: ${taskId}`, { headers: { "Content-Type": "text/plain" } });
+    }
 
     return NextResponse.json({ success: true, message: "Task deleted successfully" });
   } catch (error) {

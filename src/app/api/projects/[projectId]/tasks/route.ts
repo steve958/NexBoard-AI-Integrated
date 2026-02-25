@@ -127,11 +127,34 @@ export async function GET(
 
     // Format response
     if (format === "text") {
-      // CLI-friendly format
-      const lines = tasks.map(t =>
-        `${t.taskId}\t${t.title}\t${t.columnId || ""}\t${t.assigneeId || ""}`
-      );
-      return new NextResponse(lines.join("\n"), {
+      // Fetch column names for readable status labels
+      const columnsSnap = await db.collection("projects").doc(projectId).collection("columns").get();
+      const columnNames: Record<string, string> = {};
+      columnsSnap.forEach(col => {
+        columnNames[col.id] = (col.data().name as string) || col.id;
+      });
+
+      if (tasks.length === 0) {
+        return new NextResponse("No tasks found.", {
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+
+      const titleWidth = Math.max(5, ...tasks.map(t => t.title.length));
+      const statusWidth = Math.max(6, ...tasks.map(t => (columnNames[t.columnId] || t.columnId).length));
+      const header = `${"TITLE".padEnd(titleWidth)}  ${"STATUS".padEnd(statusWidth)}  ASSIGNEE`;
+      const separator = "-".repeat(titleWidth + statusWidth + 14);
+      const lines = tasks.map(t => {
+        const status = (columnNames[t.columnId] || t.columnId).padEnd(statusWidth);
+        const assignee = t.assigneeId || "-";
+        const due = t.dueDate ? `  due:${t.dueDate.split("T")[0]}` : "";
+        return `${t.title.padEnd(titleWidth)}  ${status}  ${assignee}${due}  (${t.taskId})`;
+      });
+      const footer = hasMore
+        ? `\n${tasks.length} task(s) shown -- next cursor: ${tasks[tasks.length - 1].taskId}`
+        : `\n${tasks.length} task(s)`;
+
+      return new NextResponse([header, separator, ...lines, footer].join("\n"), {
         headers: { "Content-Type": "text/plain" },
       });
     }
@@ -233,6 +256,14 @@ export async function POST(
       updatedAt: now.toISOString(),
       dueDate: parsedDueDate?.toISOString() || null,
     };
+
+    const postFormat = request.nextUrl.searchParams.get("format");
+    if (postFormat === "text") {
+      return new NextResponse(`Created: ${createdTask.title} (${taskRef.id})`, {
+        status: 201,
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
 
     return NextResponse.json(createdTask, { status: 201 });
   } catch (error) {
