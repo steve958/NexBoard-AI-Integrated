@@ -213,11 +213,15 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { title, description, status, assigneeId, dueDate, parentTaskId } = body;
+    const { title, description, status, columnId: columnIdField, assigneeId, dueDate, parentTaskId } = body;
+    const resolvedColumnId = columnIdField || status;
 
     // Validate required fields
     if (!title || typeof title !== "string" || title.trim().length === 0) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+    if (!resolvedColumnId || typeof resolvedColumnId !== "string") {
+      return NextResponse.json({ error: "columnId (or status) is required" }, { status: 400 });
     }
 
     // Build task data
@@ -226,7 +230,7 @@ export async function POST(
 
     const taskData: Record<string, unknown> = {
       title: title.trim(),
-      columnId: status || "backlog", // Default to backlog if not specified
+      columnId: resolvedColumnId,
       order: midKey(),
       createdAt: now,
       updatedAt: now,

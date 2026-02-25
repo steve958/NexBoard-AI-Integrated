@@ -29,21 +29,26 @@ export async function GET(
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
 
-    // Find the task using collection group query
     const db = getAdminDb();
-    const tasksQuery = db.collectionGroup("tasks").where("__name__", "==", taskId).limit(1);
-    const tasksSnapshot = await tasksQuery.get();
+    const projectIdParam = request.nextUrl.searchParams.get("projectId");
 
-    if (tasksSnapshot.empty) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    let taskDoc: FirebaseFirestore.DocumentSnapshot;
+    let projectId: string;
+
+    if (projectIdParam) {
+      // Fast path: direct lookup when projectId is known
+      const ref = db.collection("projects").doc(projectIdParam).collection("tasks").doc(taskId);
+      taskDoc = await ref.get();
+      if (!taskDoc.exists) {
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+      projectId = projectIdParam;
+    } else {
+      // Slow path: scan all projects (requires taskId stored as field)
+      return NextResponse.json({ error: "projectId query param is required" }, { status: 400 });
     }
 
-    const taskDoc = tasksSnapshot.docs[0];
     const taskData = taskDoc.data();
-
-    // Extract projectId from the path
-    const pathParts = taskDoc.ref.path.split("/");
-    const projectId = pathParts[pathParts.indexOf("projects") + 1];
 
     // Check project membership
     const projectDoc = await db.collection("projects").doc(projectId).get();
@@ -125,29 +130,25 @@ export async function PATCH(
 
     // Parse request body
     const body = await request.json();
-    const { title, description, status, assigneeId, dueDate, order } = body;
+    const { title, description, status, columnId: columnIdField, assigneeId, dueDate, order } = body;
 
-    // Find the task to get its project
     const db = getAdminDb();
+    const projectIdParam = request.nextUrl.searchParams.get("projectId");
 
-    // We need to find which project this task belongs to
-    // Since tasks are in subcollections, we need to search
-    // For MVP, we can use a collection group query or require projectId
-    // Let's use collection group query
+    if (!projectIdParam) {
+      return NextResponse.json({ error: "projectId query param is required" }, { status: 400 });
+    }
 
-    const tasksQuery = db.collectionGroup("tasks").where("__name__", "==", taskId).limit(1);
-    const tasksSnapshot = await tasksQuery.get();
+    const taskDocRef = db.collection("projects").doc(projectIdParam).collection("tasks").doc(taskId);
+    const taskDocSnap = await taskDocRef.get();
 
-    if (tasksSnapshot.empty) {
+    if (!taskDocSnap.exists) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    const taskDoc = tasksSnapshot.docs[0];
+    const taskDoc = taskDocSnap;
     const taskData = taskDoc.data();
-
-    // Extract projectId from the path
-    const pathParts = taskDoc.ref.path.split("/");
-    const projectId = pathParts[pathParts.indexOf("projects") + 1];
+    const projectId = projectIdParam;
 
     // Check project membership
     const projectDoc = await db.collection("projects").doc(projectId).get();
@@ -176,8 +177,9 @@ export async function PATCH(
       updateData.description = description;
     }
 
-    if (status !== undefined) {
-      updateData.columnId = status; // status maps to columnId
+    const resolvedStatus = columnIdField !== undefined ? columnIdField : status;
+    if (resolvedStatus !== undefined) {
+      updateData.columnId = resolvedStatus;
     }
 
     if (assigneeId !== undefined) {
@@ -201,10 +203,10 @@ export async function PATCH(
     }
 
     // Update task
-    await taskDoc.ref.update(updateData);
+    await taskDocRef.update(updateData);
 
     // Fetch updated task
-    const updatedDoc = await taskDoc.ref.get();
+    const updatedDoc = await taskDocRef.get();
     const updatedData = updatedDoc.data();
 
     const updatedTask = {
@@ -259,20 +261,22 @@ export async function DELETE(
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
 
-    // Find the task using collection group query
     const db = getAdminDb();
-    const tasksQuery = db.collectionGroup("tasks").where("__name__", "==", taskId).limit(1);
-    const tasksSnapshot = await tasksQuery.get();
+    const projectIdParam = request.nextUrl.searchParams.get("projectId");
 
-    if (tasksSnapshot.empty) {
+    if (!projectIdParam) {
+      return NextResponse.json({ error: "projectId query param is required" }, { status: 400 });
+    }
+
+    const taskDocRef = db.collection("projects").doc(projectIdParam).collection("tasks").doc(taskId);
+    const taskDocSnap = await taskDocRef.get();
+
+    if (!taskDocSnap.exists) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    const taskDoc = tasksSnapshot.docs[0];
-
-    // Extract projectId from the path
-    const pathParts = taskDoc.ref.path.split("/");
-    const projectId = pathParts[pathParts.indexOf("projects") + 1];
+    const taskDoc = taskDocSnap;
+    const projectId = projectIdParam;
 
     // Check project membership
     const projectDoc = await db.collection("projects").doc(projectId).get();
@@ -286,7 +290,7 @@ export async function DELETE(
     }
 
     // Delete the task
-    await taskDoc.ref.delete();
+    await taskDocRef.delete();
 
     const deleteFormat = request.nextUrl.searchParams.get("format");
     if (deleteFormat === "text") {
